@@ -1,0 +1,12 @@
+import * as bcrypt from 'bcrypt';
+
+export const encryptPassword = (password: string, salto = 10) => {
+  const salt = bcrypt.genSaltSync(salto);
+  const hash = bcrypt.hashSync(password, salt);
+
+  return hash;
+};
+
+export const verifyPassword = (password: string, hash: string) => {
+  return bcrypt.compareSync(password, hash);
+};
