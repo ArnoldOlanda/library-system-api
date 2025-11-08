@@ -1,6 +1,6 @@
-import { BeforeInsert, Column, CreateDateColumn, DeleteDateColumn, Entity, PrimaryColumn, UpdateDateColumn } from "typeorm";
+import { Role } from "src/auth/entities/role.entity";
+import { BeforeInsert, Column, CreateDateColumn, DeleteDateColumn, Entity, JoinTable, ManyToMany, PrimaryColumn, UpdateDateColumn } from "typeorm";
 import {v4 as uuid} from 'uuid'
-import { ValidRole } from "src/auth/enums/validRoles.enum";
 
 @Entity('users')
 export class User {
@@ -19,8 +19,9 @@ export class User {
     @Column({type: 'varchar'})
     password: string;
 
-    @Column({type: 'enum', enum: ValidRole, default: ValidRole.USER})
-    role: ValidRole;
+    @ManyToMany(() => Role)
+    @JoinTable()
+    roles: Role[];
 
     @Column({type: 'boolean', default: true})
     isActive: boolean;

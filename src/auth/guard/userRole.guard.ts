@@ -3,6 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 import { User } from 'src/users/entities/user.entity';
 import { META_ROLE } from '../decorators/roleProtected.decorator';
+import { isErrored } from 'stream';
 
 @Injectable()
 export class UserRoleGuard implements CanActivate {
@@ -19,13 +20,16 @@ export class UserRoleGuard implements CanActivate {
     if(!validRoles) return true;
     if(validRoles.length === 0) return true;
     
+    //Los roles ya vienen en el request gracias al AuthGuard de JWT
     const req = context.switchToHttp().getRequest();
-    const user = req.user as User & { role: string };    
+    const user = req.user as User;
     
-    if (!validRoles.includes(user.role)) {
-      throw new ForbiddenException('This route is only accessible by users with the following roles: ' + validRoles.join(', '));
+    // Verifica si el usuario tiene al menos uno de los roles válidos
+    const userRoles = Array.isArray(user.roles) ? user.roles.map(r => r.name) : [];
+    const hasValidRole = userRoles.some(role => validRoles.includes(role));
+    if (!hasValidRole) {
+      throw new ForbiddenException('Esta ruta solo es accesible para usuarios con los siguientes roles: ' + validRoles.join(', '));
     }
-  
     return true;
   }
 }

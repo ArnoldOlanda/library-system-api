@@ -6,12 +6,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
 import { encryptPassword } from 'src/utils';
+import { Role } from 'src/auth/entities/role.entity';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(Role)
+    private readonly roleRepository: Repository<Role>,
   ) {}
 
   async create(createUserDto: CreateUserDto) {
@@ -41,6 +44,7 @@ export class UsersService {
     const { limit = 10, offset = 0 } = paginationDto;
 
     const [users, total] = await this.userRepository.findAndCount({
+      relations: ['roles'],
       take: limit,
       skip: offset,
     });
@@ -95,5 +99,28 @@ export class UsersService {
     user.isActive = false;
     await this.userRepository.save(user);
     return this.userRepository.softDelete(id);
+  }
+
+  //Role assignment
+  async assignRole(userId: string, roleId: string) {
+    const user = await this.userRepository.findOne({ where: { id: userId }, relations: ['roles'] });
+    if (!user) {
+      throw new NotFoundException(`User with id ${userId} not found`);
+    }
+
+    const role = await this.roleRepository.findOneBy({ id: roleId });
+    if (!role) {
+      throw new NotFoundException(`Role with id ${roleId} not found`);
+    }
+
+    // Verificar si el usuario ya tiene el rol
+    if (Array.isArray(user.roles) && user.roles.some(r => r.id === roleId)) {
+      throw new ConflictException(`User already has the role "${role.name}"`);
+    }
+
+    user.roles = Array.isArray(user.roles) ? [...user.roles, role] : [role];
+    await this.userRepository.save(user);
+
+    return `Rol asignado correctamente.`;
   }
 }

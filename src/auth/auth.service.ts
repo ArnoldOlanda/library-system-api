@@ -1,6 +1,7 @@
 import {
   HttpStatus,
   Injectable,
+  InternalServerErrorException,
   Logger,
   NotFoundException,
   UnauthorizedException,
@@ -56,7 +57,6 @@ export class AuthService {
 
       return res.status(HttpStatus.OK).json({
         success: true,
-        message: 'Login successful',
         data: {
           user,
           token,
@@ -64,7 +64,7 @@ export class AuthService {
       });
     } catch (error) {
       this.logger.error('Error during login', error);
-      throw error;
+      throw new InternalServerErrorException('Error during login');
     }
   }
 
