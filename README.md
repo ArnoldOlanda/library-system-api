@@ -23,7 +23,78 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+API REST para aplicación de Autenticacion desarrollada con [NestJS](https://github.com/nestjs/nest), TypeScript y TypeORM.
+
+## Features Implementadas
+
+### 🔐 Autenticación y Autorización
+- ✅ Login con JWT
+- ✅ Refresh Token con cookies HTTP-only
+- ✅ Recuperación de contraseña por correo electrónico
+- ✅ Validación de tokens de reseteo
+- ✅ Cambio de contraseña para usuarios autenticados
+- ✅ Guards de autenticación basados en Passport JWT
+- ✅ Sistema de roles y permisos granular
+- ✅ Guards personalizados para roles y permisos
+
+### 👥 Gestión de Usuarios
+- ✅ CRUD completo de usuarios
+- ✅ Paginación de listados
+- ✅ Soft delete (eliminación lógica)
+- ✅ Asignación de roles a usuarios
+- ✅ Validación de datos con class-validator
+- ✅ Encriptación de contraseñas con bcrypt
+
+### 🔑 Gestión de Roles
+- ✅ CRUD completo de roles
+- ✅ Relación muchos a muchos con permisos
+- ✅ Asignación múltiple de permisos a roles
+
+### 🛡️ Gestión de Permisos
+- ✅ CRUD completo de permisos
+- ✅ Sistema de permisos granular por recurso y acción
+- ✅ Validación de permisos en endpoints
+
+### 📧 Notificaciones
+- ✅ Envío de correos electrónicos con plantillas HTML
+- ✅ Templates personalizados para recuperación de contraseña
+- ✅ Integración con @nestjs-modules/mailer
+
+### 📚 Documentación
+- ✅ Documentación Swagger/OpenAPI
+- ✅ Decoradores @ApiResponse en todos los endpoints
+- ✅ Documentación de códigos de estado HTTP
+- ✅ Bearer Authentication configurado
+
+### 🛠️ Características Técnicas
+- ✅ TypeORM para gestión de base de datos
+- ✅ Migraciones de base de datos
+- ✅ Variables de entorno con @nestjs/config
+- ✅ Interceptor para formato de respuestas
+- ✅ Manejo global de excepciones
+- ✅ Validación de DTOs
+- ✅ CORS configurado
+- ✅ Timestamps localizados en respuestas
+
+## Estructura del Proyecto
+
+```
+src/
+├── auth/              # Módulo de autenticación
+│   ├── decorators/    # Decoradores personalizados (@Auth, @RoleProtected, etc.)
+│   ├── dto/           # DTOs para login, roles, permisos
+│   ├── entities/      # Entidades de Role, Permission, PasswordResetToken
+│   ├── enums/         # Enums de roles y permisos
+│   ├── guard/         # Guards de roles y permisos
+│   └── strategies/    # Estrategia JWT
+├── users/             # Módulo de usuarios
+│   ├── dto/           # DTOs para usuarios y paginación
+│   └── entities/      # Entidad de User
+├── config/            # Configuración de CORS y DataSource
+├── interceptors/      # Interceptor de formato de respuestas
+├── migrations/        # Migraciones de TypeORM
+└── utils/             # Utilidades (encriptación, etc.)
+```
 
 ## Project setup
 
@@ -56,43 +127,6 @@ $ pnpm run test:e2e
 # test coverage
 $ pnpm run test:cov
 ```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
