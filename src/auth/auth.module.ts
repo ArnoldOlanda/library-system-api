@@ -13,22 +13,24 @@ import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { PasswordResetToken } from './entities/passwordResetToken.entity';
 
 @Module({
-  imports: [
-    PassportModule.register({ defaultStrategy: 'jwt' }),
-    TypeOrmModule.forFeature([User, Role, Permission]),
-    JwtModule.registerAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET') || 'defaultSecret',
-        signOptions: { expiresIn: '8h' },
-      }),
-    }),
-  ],
-  controllers: [AuthController, RoleController, PermissionController],
-  providers: [AuthService, JwtStrategy, RoleService, PermissionService],
-  exports: [JwtStrategy],
+    imports: [
+        PassportModule.register({ defaultStrategy: 'jwt' }),
+        TypeOrmModule.forFeature([User, Role, Permission, PasswordResetToken]),
+        JwtModule.registerAsync({
+            imports: [ConfigModule],
+            inject: [ConfigService],
+            useFactory: (configService: ConfigService) => ({
+                secret:
+                    configService.get<string>('JWT_SECRET') || 'defaultSecret',
+                signOptions: { expiresIn: '8h' },
+            }),
+        }),
+    ],
+    controllers: [AuthController, RoleController, PermissionController],
+    providers: [AuthService, JwtStrategy, RoleService, PermissionService],
+    exports: [JwtStrategy],
 })
 export class AuthModule {}
