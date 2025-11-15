@@ -17,6 +17,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PasswordResetToken } from './entities/passwordResetToken.entity';
 import { EmailVerification } from './entities/emailVerification.entity';
 import { EmailVerificationService } from './emailVerification.service';
+import { BullModule } from '@nestjs/bullmq';
 
 @Module({
     imports: [
@@ -31,9 +32,12 @@ import { EmailVerificationService } from './emailVerification.service';
                 signOptions: { expiresIn: '8h' },
             }),
         }),
+        BullModule.registerQueue({
+            name: 'email',
+        })
     ],
     controllers: [AuthController, RoleController, PermissionController],
     providers: [AuthService, JwtStrategy, GoogleStrategy, RoleService, PermissionService, EmailVerificationService],
-    exports: [JwtStrategy],
+    exports: [JwtStrategy, EmailVerificationService],
 })
 export class AuthModule {}

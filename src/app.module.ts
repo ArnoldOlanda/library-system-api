@@ -11,6 +11,7 @@ import { MailerModule } from '@nestjs-modules/mailer';
 import { join } from 'path';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { QueueModule } from './queue/queue.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { APP_GUARD } from '@nestjs/core';
     TypeOrmModule.forRoot(dataSource),
     UsersModule,
     AuthModule,
+    QueueModule,
   ],
   controllers: [AppController],
   providers: [

@@ -21,6 +21,8 @@ import { MailerService } from '@nestjs-modules/mailer';
 import { PasswordResetToken } from './entities/passwordResetToken.entity';
 import { EmailVerificationService } from './emailVerification.service';
 import { RegisterDto } from './dto/register.dto';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 @Injectable()
 export class AuthService {
@@ -31,6 +33,8 @@ export class AuthService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(PasswordResetToken)
     private readonly passwordResetTokenRepository: Repository<PasswordResetToken>,
+    @InjectQueue('email')
+    private readonly emailQueue: Queue,
     private readonly emailVerificationService: EmailVerificationService,
     private jwtService: JwtService,
     private configService: ConfigService,
@@ -112,10 +116,9 @@ export class AuthService {
 
       await this.emailVerificationService.create({ user, token });
 
-      // Enviar correo de activación
       const activationUrl = this.generateActivationUrl(token);
 
-      await this.sendEmailVerification(email, name, activationUrl);
+      await this.queueEmailVerification(user, activationUrl);
 
       return {
         message:
@@ -224,13 +227,16 @@ export class AuthService {
         throw new BadRequestException('User account is already active');
       }
 
+      // Invalidar tokens anteriores
+      await this.emailVerificationService.invalidatePreviousVerificationTokens(user.id);
+
       const token = crypto.randomUUID();
       
       await this.emailVerificationService.create({ user, token });
 
       const activationUrl = this.generateActivationUrl(token);
 
-      await this.sendEmailVerification(user.email, user.name, activationUrl);
+      await this.queueEmailVerification(user, activationUrl);
 
       return {
         message: 'Correo de verificación reenviado exitosamente',
@@ -458,16 +464,23 @@ export class AuthService {
     return `${this.configService.get<string>('FRONTEND_URL')}/auth/activate?token=${token}`;
   }
 
-  private sendEmailVerification(email: string, name: string, activationUrl: string) {
-    return this.mailerService.sendMail({
-        to: email,
-        from: '"My App" <no-reply@myapp.com>',
-        subject: 'Activa tu cuenta',
-        template: 'activation',
-        context: {
-          name,
+  private async queueEmailVerification(user: User, activationUrl: string) {
+    await this.emailQueue.add(
+        'send-verification-email',
+        {
+          email: user.email,
+          name: user.name,
           activationUrl,
         },
-      });
+        {
+          attempts: 3,
+          backoff: {
+            type: 'fixed',
+            delay: 10000,
+          },
+          removeOnComplete: true,
+          removeOnFail: false,
+        },
+      );
   }
 }

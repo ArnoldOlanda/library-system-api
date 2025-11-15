@@ -4,12 +4,14 @@ import { User } from 'src/users/entities/user.entity';
 import { EmailVerification } from './entities/emailVerification.entity';
 import { Repository } from 'typeorm';
 import { encryptText, verifyEncryptedText } from 'src/utils';
+import { MailerService } from '@nestjs-modules/mailer';
 
 @Injectable()
 export class EmailVerificationService {
     constructor(
         @InjectRepository(EmailVerification)
         private readonly emailVerificationRepository: Repository<EmailVerification>,
+        private readonly mailerService: MailerService,
     ) {}
 
     /**
@@ -70,6 +72,36 @@ export class EmailVerificationService {
     async markAsUsed(id: string) {
         return await this.emailVerificationRepository.update(id, {
             isUsed: true,
+        });
+    }
+
+    async invalidatePreviousVerificationTokens(userId: string){
+        return await this.emailVerificationRepository.update(
+            { 
+                user: { id: userId },
+                isUsed: false 
+            },
+            { isUsed: true }
+        );
+    }
+
+    /**
+     * Envía un correo de verificación de email.
+     * @param email Email del destinatario
+     * @param name Nombre del destinatario
+     * @param activationUrl URL de activación con el token
+     * @returns 
+     */
+    sendEmailVerification(email: string, name: string, activationUrl: string) {
+        return this.mailerService.sendMail({
+            to: email,
+            from: '"My App" <no-reply@myapp.com>',
+            subject: 'Activa tu cuenta',
+            template: 'activation',
+            context: {
+                name,
+                activationUrl,
+            },
         });
     }
 }
