@@ -3,7 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { UsersService } from 'src/users/users.service';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
-import { testDbConfig } from '../test-db.config';
+import {dataSource as dataSourceOptions} from 'src/config/dataSource';
 import { seedTestData } from '../seed-test-data';
 import { User } from 'src/users/entities/user.entity';
 import { Role } from 'src/auth/entities/role.entity';
@@ -19,7 +19,7 @@ describe('UsersService (con DB real)', () => {
   beforeAll(async () => {
     module = await Test.createTestingModule({
       imports: [
-        TypeOrmModule.forRoot(testDbConfig),
+        TypeOrmModule.forRoot(dataSourceOptions),
         TypeOrmModule.forFeature([User, Role, Permission, EmailVerification, PasswordResetToken]),
       ],
       providers: [UsersService],

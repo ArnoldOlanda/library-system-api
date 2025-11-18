@@ -2,10 +2,12 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DataSource, DataSourceOptions } from 'typeorm';
 
 ConfigModule.forRoot({
-  envFilePath: '.env',
+  envFilePath: `.env.${process.env.NODE_ENV || 'dev'}`,
 });
 
 const configService = new ConfigService();
+console.log(process.env.NODE_ENV || 'dev');
+
 
 export const dataSource: DataSourceOptions = {
   type: 'postgres',
@@ -16,8 +18,9 @@ export const dataSource: DataSourceOptions = {
   database: configService.get('DB_NAME'),
   entities: [__dirname + '/../**/*.entity{.ts,.js}'],
   migrations: [__dirname + '/../migrations/*.{ts,js}'],
-  // synchronize: process.env.NODE_ENV === 'production' ? false : true,
-  synchronize: true,
+  synchronize: process.env.NODE_ENV === 'prod' ? false : true,
+  // synchronize: true,
+  dropSchema: process.env.NODE_ENV === 'test' ? true : false,
   logging: false,
 };
 
