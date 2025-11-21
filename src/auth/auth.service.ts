@@ -9,20 +9,20 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from 'src/users/entities/user.entity';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { InjectQueue } from '@nestjs/bullmq';
 import { Repository } from 'typeorm';
+import { Response } from 'express';
+import { Queue } from 'bullmq';
+
 import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
 import { encryptText, verifyEncryptedText } from 'src/utils';
 import { JwtPayload, SocialProviderUser } from './interfaces';
-import { JwtService } from '@nestjs/jwt';
-import { Response } from 'express';
-import { ConfigService } from '@nestjs/config';
-import { MailerService } from '@nestjs-modules/mailer';
-import { PasswordResetToken } from './entities/passwordResetToken.entity';
+import { User } from 'src/users/entities/user.entity';
 import { EmailVerificationService } from './emailVerification.service';
-import { RegisterDto } from './dto/register.dto';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
+import { PasswordResetTokenService } from './passwordResetToken.service';
 
 @Injectable()
 export class AuthService {
@@ -31,14 +31,12 @@ export class AuthService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    @InjectRepository(PasswordResetToken)
-    private readonly passwordResetTokenRepository: Repository<PasswordResetToken>,
     @InjectQueue('email')
     private readonly emailQueue: Queue,
     private readonly emailVerificationService: EmailVerificationService,
+    private readonly passwordResetTokenService: PasswordResetTokenService,
     private jwtService: JwtService,
     private configService: ConfigService,
-    private readonly mailerService: MailerService,
   ) {}
 
   async login(res: Response, data: LoginDto) {
@@ -118,7 +116,7 @@ export class AuthService {
 
       const activationUrl = this.generateActivationUrl(token);
 
-      await this.queueEmailVerification(user, activationUrl);
+      await this.emailVerificationService.queueEmailVerification(user, activationUrl);
 
       return {
         message:
@@ -236,7 +234,7 @@ export class AuthService {
 
       const activationUrl = this.generateActivationUrl(token);
 
-      await this.queueEmailVerification(user, activationUrl);
+      await this.emailVerificationService.queueEmailVerification(user, activationUrl);
 
       return {
         message: 'Correo de verificación reenviado exitosamente',
@@ -295,46 +293,10 @@ export class AuthService {
         );
       }
 
-      // Invalidar tokens anteriores del usuario
-      await this.passwordResetTokenRepository.update(
-        { userId: user.id, isUsed: false },
-        { isUsed: true },
-      );
-
-      // Generar nuevo token único (UUID)
-      const tokenId = crypto.randomUUID();
-
-      // Crear fecha de expiración (1 hora desde ahora)
-      const expiresAt = new Date();
-      expiresAt.setHours(expiresAt.getHours() + 1);
-
-      const resetToken = this.passwordResetTokenRepository.create({
-        id: tokenId,
-        userId: user.id,
-        expiresAt,
-        isUsed: false,
-      });
-
-      await this.passwordResetTokenRepository.save(resetToken);
-
-      const url = `${this.configService.get<string>(
-        'FRONTEND_URL',
-      )}/auth/reset-password?token=${tokenId}`;
-
-      await this.mailerService.sendMail({
-        to: email,
-        from: '"my app" <my-app@gmail.com>',
-        subject: 'Recuperación de contraseña',
-        template: 'forgotPassword',
-        context: {
-          email,
-          url,
-        },
-      });
+      await this.passwordResetTokenService.forgotPassword(user);
 
       return {
-        message:
-          'Se ha enviado un correo con las instrucciones para restablecer tu contraseña',
+        message: 'Se ha enviado un correo con las instrucciones para restablecer tu contraseña',
       };
     } catch (error) {
       this.logger.error('Error al enviar el correo de recuperación', error);
@@ -352,7 +314,7 @@ export class AuthService {
    */
   validateResetToken(token: string) {
     try {
-      return this.findTokenAndValidate(token);
+      return this.passwordResetTokenService.findTokenAndValidate(token);
     } catch (error) {
       this.logger.error(error);
       throw error;
@@ -360,15 +322,11 @@ export class AuthService {
   }
 
   async resetPassword(token: string, password: string) {
-    try {
-      const resetToken = await this.findTokenAndValidate(token);
-
-      // Marcar el token como usado
-      resetToken.isUsed = true;
-      await this.passwordResetTokenRepository.save(resetToken);
+    try {      
 
       // Actualizar la contraseña del usuario
-      const user = resetToken.user;
+      const user = await this.passwordResetTokenService.resetPassword(token);
+
       user.password = encryptText(password);
       await this.userRepository.update(user.id, user);
 
@@ -429,58 +387,11 @@ export class AuthService {
     return this.userRepository.update(user.id, user);
   }
 
-  private async findTokenAndValidate(token: string) {
-    // Buscar el token en la base de datos
-    const resetToken = await this.passwordResetTokenRepository.findOne({
-      where: { id: token },
-      relations: ['user'],
-    });
-
-    if (!resetToken) {
-      throw new NotFoundException('Token de reseteo no encontrado');
-    }
-
-    // Verificar si el token es válido (no usado y no expirado)
-    if (!resetToken.isValid()) {
-      let message = 'El token de reseteo no es válido';
-
-      if (resetToken.isUsed) {
-        message = 'Este token ya ha sido utilizado';
-      } else if (resetToken.isExpired()) {
-        message = 'El token ha expirado. Por favor, solicita uno nuevo';
-      }
-
-      throw new BadRequestException(message);
-    }
-
-    return resetToken;
-  }
-
   private generateToken(payload: { id: string }) {
     return this.jwtService.sign(payload);
   }
 
   private generateActivationUrl(token: string) {
     return `${this.configService.get<string>('FRONTEND_URL')}/auth/activate?token=${token}`;
-  }
-
-  private async queueEmailVerification(user: User, activationUrl: string) {
-    await this.emailQueue.add(
-        'send-verification-email',
-        {
-          email: user.email,
-          name: user.name,
-          activationUrl,
-        },
-        {
-          attempts: 3,
-          backoff: {
-            type: 'fixed',
-            delay: 10000,
-          },
-          removeOnComplete: true,
-          removeOnFail: false,
-        },
-      );
   }
 }

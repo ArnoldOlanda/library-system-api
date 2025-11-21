@@ -4,14 +4,16 @@ import { User } from 'src/users/entities/user.entity';
 import { EmailVerification } from './entities/emailVerification.entity';
 import { Repository } from 'typeorm';
 import { encryptText, verifyEncryptedText } from 'src/utils';
-import { MailerService } from '@nestjs-modules/mailer';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 @Injectable()
 export class EmailVerificationService {
     constructor(
         @InjectRepository(EmailVerification)
         private readonly emailVerificationRepository: Repository<EmailVerification>,
-        private readonly mailerService: MailerService,
+        @InjectQueue('email')
+        private readonly emailQueue: Queue,
     ) {}
 
     /**
@@ -75,6 +77,11 @@ export class EmailVerificationService {
         });
     }
 
+    /**
+     * Invalida todos los tokens de verificación previos para un usuario.
+     * @param userId - ID del usuario.
+     * @returns El resultado de la actualización.
+     */
     async invalidatePreviousVerificationTokens(userId: string){
         return await this.emailVerificationRepository.update(
             { 
@@ -86,22 +93,27 @@ export class EmailVerificationService {
     }
 
     /**
-     * Envía un correo de verificación de email.
-     * @param email Email del destinatario
-     * @param name Nombre del destinatario
-     * @param activationUrl URL de activación con el token
-     * @returns 
+     * Encola un email de verificación para ser enviado.
+     * @param user - Usuario al que se enviará el email.
+     * @param activationUrl - URL de activación que se incluirá en el email.
      */
-    sendEmailVerification(email: string, name: string, activationUrl: string) {
-        return this.mailerService.sendMail({
-            to: email,
-            from: '"My App" <no-reply@myapp.com>',
-            subject: 'Activa tu cuenta',
-            template: 'activation',
-            context: {
-                name,
-                activationUrl,
+    async queueEmailVerification(user: User, activationUrl: string) {
+        await this.emailQueue.add(
+            'send-verification-email',
+            {
+            email: user.email,
+            name: user.name,
+            activationUrl,
             },
-        });
+            {
+            attempts: 3,
+            backoff: {
+                type: 'fixed',
+                delay: 10000,
+            },
+            removeOnComplete: true,
+            removeOnFail: false,
+            },
+        );
     }
 }

@@ -18,26 +18,40 @@ import { PasswordResetToken } from './entities/passwordResetToken.entity';
 import { EmailVerification } from './entities/emailVerification.entity';
 import { EmailVerificationService } from './emailVerification.service';
 import { BullModule } from '@nestjs/bullmq';
+import { PasswordResetTokenService } from './passwordResetToken.service';
 
 @Module({
-    imports: [
-        PassportModule.register({ defaultStrategy: 'jwt' }),
-        TypeOrmModule.forFeature([User, Role, Permission, PasswordResetToken, EmailVerification]),
-        JwtModule.registerAsync({
-            imports: [ConfigModule],
-            inject: [ConfigService],
-            useFactory: (configService: ConfigService) => ({
-                secret:
-                    configService.get<string>('JWT_SECRET') || 'defaultSecret',
-                signOptions: { expiresIn: '8h' },
-            }),
-        }),
-        BullModule.registerQueue({
-            name: 'email',
-        })
-    ],
-    controllers: [AuthController, RoleController, PermissionController],
-    providers: [AuthService, JwtStrategy, GoogleStrategy, RoleService, PermissionService, EmailVerificationService],
-    exports: [JwtStrategy, EmailVerificationService],
+  imports: [
+    PassportModule.register({ defaultStrategy: 'jwt' }),
+    TypeOrmModule.forFeature([
+      User,
+      Role,
+      Permission,
+      PasswordResetToken,
+      EmailVerification,
+    ]),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET') || 'defaultSecret',
+        signOptions: { expiresIn: '8h' },
+      }),
+    }),
+    BullModule.registerQueue({
+      name: 'email',
+    }),
+  ],
+  controllers: [AuthController, RoleController, PermissionController],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    GoogleStrategy,
+    RoleService,
+    PermissionService,
+    EmailVerificationService,
+    PasswordResetTokenService,
+  ],
+  exports: [JwtStrategy, EmailVerificationService],
 })
 export class AuthModule {}
