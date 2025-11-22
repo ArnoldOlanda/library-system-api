@@ -1,7 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { DataSource } from "typeorm";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { AuthService } from "src/auth/auth.service";
+import { AuthService } from "src/auth/services/auth.service";
 import { dataSource } from "src/config/dataSource";
 import { User } from "src/users/entities/user.entity";
 import { Role } from "src/auth/entities/role.entity";
@@ -13,7 +13,7 @@ import { Response } from "express";
 import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
 import { MailerService } from "@nestjs-modules/mailer";
-import { EmailVerificationService } from "src/auth/emailVerification.service";
+import { EmailVerificationService } from "src/auth/services/emailVerification.service";
 import { getQueueToken } from "@nestjs/bullmq";
 import { SocialProviderUser } from "src/auth/interfaces";
 import { SocialProvider } from "src/auth/enums/socialProvider.enum";

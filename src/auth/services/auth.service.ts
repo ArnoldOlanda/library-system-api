@@ -16,10 +16,10 @@ import { Repository } from 'typeorm';
 import { Response } from 'express';
 import { Queue } from 'bullmq';
 
-import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from '../dto/login.dto';
+import { RegisterDto } from '../dto/register.dto';
 import { encryptText, verifyEncryptedText } from 'src/utils';
-import { JwtPayload, SocialProviderUser } from './interfaces';
+import { JwtPayload, SocialProviderUser } from '../interfaces';
 import { User } from 'src/users/entities/user.entity';
 import { EmailVerificationService } from './emailVerification.service';
 import { PasswordResetTokenService } from './passwordResetToken.service';

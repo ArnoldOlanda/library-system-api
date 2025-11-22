@@ -123,4 +123,25 @@ export class UsersService {
 
     return `Rol asignado correctamente.`;
   }
+
+  //Role removal
+  async removeRole(userId: string, roleId: string) {
+    const user = await this.userRepository.findOne({ where: { id: userId }, relations: ['roles'] });
+    if (!user) {
+      throw new NotFoundException(`User with id ${userId} not found`);
+    }
+
+    const role = await this.roleRepository.findOneBy({ id: roleId });
+    if (!role) {
+      throw new NotFoundException(`Role with id ${roleId} not found`);
+    }
+
+    // Verificar si el usuario tiene el rol
+    if (!Array.isArray(user.roles) || !user.roles.some(r => r.id === roleId)) {
+      throw new NotFoundException(`User does not have the role "${role.name}"`);
+    }
+    user.roles = user.roles.filter(r => r.id !== roleId);
+    await this.userRepository.save(user);
+    return `Rol removido correctamente.`;
+  }
 }

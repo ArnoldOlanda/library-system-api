@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/users/entities/user.entity';
-import { EmailVerification } from './entities/emailVerification.entity';
+import { EmailVerification } from '../entities/emailVerification.entity';
 import { Repository } from 'typeorm';
 import { encryptText, verifyEncryptedText } from 'src/utils';
 import { InjectQueue } from '@nestjs/bullmq';

@@ -44,7 +44,7 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Auth({roles: [Role.ADMIN]})
+  @Auth({permissions: [Permission.READ_USER]})
   @ApiResponse({ status: 200, description: 'Usuario obtenido correctamente.' })
   @ApiResponse({ status: 400, description: 'ID inválido.' })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
@@ -54,7 +54,7 @@ export class UsersController {
     return this.usersService.findOne(id);
   }
 
-  @Auth({roles: [Role.ADMIN]})
+  @Auth({permissions: [Permission.UPDATE_USER]})
   @Patch(':id')
   @ApiResponse({ status: 200, description: 'Usuario actualizado correctamente.' })
   @ApiResponse({ status: 400, description: 'Datos inválidos.' })
@@ -66,7 +66,7 @@ export class UsersController {
     return this.usersService.update(id, updateUserDto);
   }
 
-  @Auth({roles: [Role.ADMIN]})
+  @Auth({permissions: [Permission.DELETE_USER]})
   @Delete(':id')
   @ApiResponse({ status: 200, description: 'Usuario eliminado correctamente.' })
   @ApiResponse({ status: 400, description: 'ID inválido.' })
@@ -91,5 +91,20 @@ export class UsersController {
     @Body('roleId', ParseUUIDPipe) role: string,
   ) {
     return this.usersService.assignRole(id, role);
+  }
+
+  @Auth({permissions: [Permission.UPDATE_USER]})
+  @Delete(':id/roles')
+  @ApiResponse({ status: 200, description: 'Rol removido correctamente del usuario.' })
+  @ApiResponse({ status: 400, description: 'ID de usuario o rol inválido.' })
+  @ApiResponse({ status: 401, description: 'No autorizado.' })
+  @ApiResponse({ status: 403, description: 'Prohibido.' })
+  @ApiResponse({ status: 404, description: 'Usuario o rol no encontrado.' })
+  @ApiResponse({ status: 409, description: 'El usuario no tiene el rol asignado.' })
+  removeRoles(
+    @Param('id') id: string,
+    @Body('roleId', ParseUUIDPipe) role: string,
+  ) {
+    return this.usersService.removeRole(id,role)
   }
 }

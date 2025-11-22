@@ -11,15 +11,15 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { LoginDto } from './dto/login.dto';
-import { ChangePasswordDto } from './dto/changePassword.dto';
+import { AuthService } from '../services/auth.service';
+import { LoginDto } from '../dto/login.dto';
+import { ChangePasswordDto } from '../dto/changePassword.dto';
 import { ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
-import { Auth } from './decorators/auth.decorator';
-import { ForgotPasswordDto } from './dto/forgotPassword.dto';
-import { ResetPasswordDto } from './dto/resetPassword.dto';
+import { Auth } from '../decorators/auth.decorator';
+import { ForgotPasswordDto } from '../dto/forgotPassword.dto';
+import { ResetPasswordDto } from '../dto/resetPassword.dto';
 import { Throttle } from '@nestjs/throttler';
-import { RegisterDto } from './dto/register.dto';
+import { RegisterDto } from '../dto/register.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 

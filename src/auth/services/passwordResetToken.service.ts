@@ -4,7 +4,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
 import { Repository } from 'typeorm';
 import { Queue } from 'bullmq';
-import { PasswordResetToken } from './entities/passwordResetToken.entity';
+import { PasswordResetToken } from '../entities/passwordResetToken.entity';
 import { User } from 'src/users/entities/user.entity';
 
 @Injectable()

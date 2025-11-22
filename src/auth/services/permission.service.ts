@@ -1,8 +1,8 @@
 import { ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, UpdateResult } from 'typeorm';
-import { Permission } from './entities/permission.entity';
-import { CreatePermissionDto, UpdatePermissionDto } from './dto/permission.dto';
+import { Permission } from '../entities/permission.entity';
+import { CreatePermissionDto, UpdatePermissionDto } from '../dto/permission.dto';
 
 @Injectable()
 export class PermissionService {
