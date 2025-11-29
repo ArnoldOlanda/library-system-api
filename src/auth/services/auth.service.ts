@@ -83,10 +83,10 @@ export class AuthService {
         },
       });
     } catch (error) {
+      this.logger.error('Error during login', error);
       if (error instanceof HttpException) {
         throw error;
       }
-      this.logger.error('Error during login', error);
       throw new InternalServerErrorException('Error during login');
     }
   }

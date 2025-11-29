@@ -21,8 +21,8 @@ RUN pnpm run build
 # Production stage
 FROM node:20-alpine
 
-# Install pnpm
-RUN npm install -g pnpm
+# Install pnpm and netcat for health checks
+RUN npm install -g pnpm && apk add --no-cache netcat-openbsd
 
 WORKDIR /app
 
@@ -39,8 +39,12 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 
+# Copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Expose the application port
 EXPOSE 3000
 
-# Start the application
-CMD ["node", "dist/main"]
+# Use entrypoint script
+ENTRYPOINT ["docker-entrypoint.sh"]

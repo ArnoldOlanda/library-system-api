@@ -6,7 +6,7 @@ ConfigModule.forRoot({
 });
 
 const configService = new ConfigService();
-console.log(process.env.NODE_ENV || 'dev');
+console.log({env: process.env.NODE_ENV || 'dev'});
 
 
 export const dataSource: DataSourceOptions = {

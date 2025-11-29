@@ -572,32 +572,99 @@ describe('AuthService', () => {
 
 ## 🐳 Docker Compose
 
-El proyecto incluye `docker-compose.test.yml` para facilitar el testing local.
+El proyecto incluye configuración completa de Docker para desarrollo y producción.
 
-### Servicios Incluidos
+### Servicios Incluidos (docker-compose.yml)
 
-- **postgres-test**: PostgreSQL 17 en puerto `5434`
-- **redis-test**: Redis 7 en puerto `6379`
+- **postgres**: PostgreSQL 17 en puerto `5432`
+- **redis**: Redis 7 en puerto `6379`
+- **app**: Aplicación NestJS en puerto `3000`
 
-### Uso
+### Despliegue con Docker
+
+#### 1. Configurar Variables de Entorno
+
+Crea un archivo `.env` en la raíz del proyecto con las variables necesarias (ver sección [Variables de Entorno](#-variables-de-entorno)).
+
+#### 2. Construir y Levantar Servicios
 
 ```bash
-# Levantar servicios
+# Construir imágenes y levantar servicios
+docker-compose up -d
+
+# Ver logs
+docker-compose logs -f app
+
+# Verificar estado de los servicios
+docker-compose ps
+```
+
+#### 3. Ejecutar Migraciones en Docker
+
+```bash
+# Ejecutar migraciones dentro del contenedor
+docker-compose exec app pnpm migration:run
+
+# Generar nueva migración
+docker-compose exec app pnpm migration:generate -- src/migrations/NombreMigracion
+
+# Revertir última migración
+docker-compose exec app pnpm migration:rollback
+```
+
+#### 4. Gestión de Contenedores
+
+```bash
+# Detener servicios
+docker-compose down
+
+# Detener y eliminar volúmenes (⚠️ elimina datos)
+docker-compose down -v
+
+# Reconstruir imagen de la aplicación
+docker-compose build app
+
+# Reiniciar solo la aplicación
+docker-compose restart app
+```
+
+### Dockerfile Explicado
+
+El `Dockerfile` utiliza un build multi-stage para optimizar el tamaño de la imagen:
+
+**Stage 1 - Builder**: Compila la aplicación TypeScript
+- Instala todas las dependencias
+- Compila el código TypeScript a JavaScript
+
+**Stage 2 - Production**: Imagen final optimizada
+- Incluye dependencias completas (necesarias para migraciones TypeORM)
+- Copia el código compilado y los archivos fuente
+- Incluye `tsconfig.json` para ejecutar migraciones con `ts-node`
+
+> **Nota**: La imagen de producción incluye dependencias de desarrollo porque TypeORM requiere `ts-node` y `typeorm-ts-node-commonjs` para ejecutar migraciones desde archivos TypeScript.
+
+### Docker Compose para Testing
+
+Para tests, usa `docker-compose.test.yml`:
+
+```bash
+# Levantar servicios de prueba
 pnpm run test:db-up
 
-# Verificar que estén corriendo
-docker ps
-
 # Ejecutar tests
-pnpm run test
+pnpm run test:e2e
 
-# Bajar servicios
+# Bajar servicios de prueba
 pnpm run test:db-down
 ```
 
+**Servicios de prueba**:
+- **postgres-test**: PostgreSQL 17 en puerto `5434`
+- **redis-test**: Redis 7 en puerto `6379`
+
 ### Configuración de Base de Datos de Pruebas
 
-Las credenciales por defecto son:
+Credenciales por defecto en `.env.test`:
 
 ```bash
 DB_HOST=localhost
@@ -607,19 +674,69 @@ DB_PASSWORD=test_password
 DB_NAME=test_db
 ```
 
-Asegúrate de que tu archivo `.env.test` tenga estas configuraciones.
+## 🔧 Troubleshooting
 
-### Docker Compose Manual
+### Error: `Unable to open file: "/app/src/config/dataSource.ts"` en Docker
 
+**Causa**: El contenedor de Docker no tiene los archivos fuente TypeScript o las dependencias de desarrollo necesarias para ejecutar migraciones.
+
+**Solución**: Este problema ya está resuelto en el `Dockerfile` actual. Si lo encuentras:
+
+1. Asegúrate de que el `Dockerfile` incluya:
+```dockerfile
+# Instalar todas las dependencias (incluyendo dev para migraciones)
+RUN pnpm install --frozen-lockfile
+
+# Copiar archivos fuente (necesarios para migraciones TypeORM con ts-node)
+COPY --from=builder /app/src ./src
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
+```
+
+2. Reconstruir la imagen:
 ```bash
-# Levantar en modo detached
-docker-compose -f docker-compose.test.yml up -d
+docker-compose build app
+docker-compose up -d app
+```
 
-# Ver logs
-docker-compose -f docker-compose.test.yml logs -f
+### Error: `Cannot find module '../../../src/...` en imports
 
-# Bajar y eliminar volúmenes
-docker-compose -f docker-compose.test.yml down -v
+**Causa**: Rutas de importación incorrectas usando `../../../src/` en lugar de rutas relativas apropiadas.
+
+**Solución**: Usar rutas relativas correctas en los archivos de entidades:
+
+```typescript
+// ❌ Incorrecto
+import { User } from '../../../src/users/entities/user.entity';
+
+// ✅ Correcto
+import { User } from '../../users/entities/user.entity';
+```
+
+### Error: `relation "permission" already exists` al ejecutar migraciones
+
+**Causa**: Las tablas ya existen en la base de datos (creadas por `synchronize: true` de TypeORM).
+
+**Solución**:
+
+**Opción 1**: Continuar usando el esquema existente
+```bash
+# Las migraciones están listas para uso futuro
+# No es necesario hacer nada si el esquema ya está correcto
+```
+
+**Opción 2**: Resetear la base de datos y usar migraciones
+```bash
+# Detener contenedores
+docker-compose down
+
+# Eliminar el volumen de la base de datos
+docker volume rm nest_rest_base_pgdata
+
+# Levantar servicios
+docker-compose up -d
+
+# Ejecutar migraciones
+docker-compose exec app pnpm migration:run
 ```
 
 ## 🔧 Troubleshooting

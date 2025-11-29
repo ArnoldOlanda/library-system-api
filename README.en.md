@@ -572,32 +572,99 @@ describe('AuthService', () => {
 
 ## 🐳 Docker Compose
 
-The project includes `docker-compose.test.yml` to facilitate local testing.
+The project includes complete Docker configuration for development and production.
 
-### Included Services
+### Included Services (docker-compose.yml)
 
-- **postgres-test**: PostgreSQL 17 on port `5434`
-- **redis-test**: Redis 7 on port `6379`
+- **postgres**: PostgreSQL 17 on port `5432`
+- **redis**: Redis 7 on port `6379`
+- **app**: NestJS application on port `3000`
 
-### Usage
+### Docker Deployment
+
+#### 1. Configure Environment Variables
+
+Create a `.env` file in the project root with the necessary variables (see [Environment Variables](#-environment-variables) section).
+
+#### 2. Build and Start Services
 
 ```bash
-# Start services
+# Build images and start services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f app
+
+# Check service status
+docker-compose ps
+```
+
+#### 3. Run Migrations in Docker
+
+```bash
+# Run migrations inside the container
+docker-compose exec app pnpm migration:run
+
+# Generate new migration
+docker-compose exec app pnpm migration:generate -- src/migrations/MigrationName
+
+# Rollback last migration
+docker-compose exec app pnpm migration:rollback
+```
+
+#### 4. Container Management
+
+```bash
+# Stop services
+docker-compose down
+
+# Stop and remove volumes (⚠️ deletes data)
+docker-compose down -v
+
+# Rebuild application image
+docker-compose build app
+
+# Restart only the application
+docker-compose restart app
+```
+
+### Dockerfile Explained
+
+The `Dockerfile` uses a multi-stage build to optimize image size:
+
+**Stage 1 - Builder**: Compiles the TypeScript application
+- Installs all dependencies
+- Compiles TypeScript code to JavaScript
+
+**Stage 2 - Production**: Optimized final image
+- Includes complete dependencies (required for TypeORM migrations)
+- Copies compiled code and source files
+- Includes `tsconfig.json` to run migrations with `ts-node`
+
+> **Note**: The production image includes dev dependencies because TypeORM requires `ts-node` and `typeorm-ts-node-commonjs` to run migrations from TypeScript files.
+
+### Docker Compose for Testing
+
+For tests, use `docker-compose.test.yml`:
+
+```bash
+# Start test services
 pnpm run test:db-up
 
-# Verify they're running
-docker ps
-
 # Run tests
-pnpm run test
+pnpm run test:e2e
 
-# Stop services
+# Stop test services
 pnpm run test:db-down
 ```
 
+**Test services**:
+- **postgres-test**: PostgreSQL 17 on port `5434`
+- **redis-test**: Redis 7 on port `6379`
+
 ### Test Database Configuration
 
-Default credentials are:
+Default credentials in `.env.test`:
 
 ```bash
 DB_HOST=localhost
@@ -607,19 +674,69 @@ DB_PASSWORD=test_password
 DB_NAME=test_db
 ```
 
-Make sure your `.env.test` file has these configurations.
+## 🔧 Troubleshooting
 
-### Manual Docker Compose
+### Error: `Unable to open file: "/app/src/config/dataSource.ts"` in Docker
 
+**Cause**: The Docker container doesn't have the TypeScript source files or dev dependencies needed to run migrations.
+
+**Solution**: This issue is already fixed in the current `Dockerfile`. If you encounter it:
+
+1. Make sure the `Dockerfile` includes:
+```dockerfile
+# Install all dependencies (including dev for migrations)
+RUN pnpm install --frozen-lockfile
+
+# Copy source files (needed for TypeORM migrations with ts-node)
+COPY --from=builder /app/src ./src
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
+```
+
+2. Rebuild the image:
 ```bash
-# Start in detached mode
-docker-compose -f docker-compose.test.yml up -d
+docker-compose build app
+docker-compose up -d app
+```
 
-# View logs
-docker-compose -f docker-compose.test.yml logs -f
+### Error: `Cannot find module '../../../src/...` in imports
 
-# Stop and remove volumes
-docker-compose -f docker-compose.test.yml down -v
+**Cause**: Incorrect import paths using `../../../src/` instead of proper relative paths.
+
+**Solution**: Use correct relative paths in entity files:
+
+```typescript
+// ❌ Incorrect
+import { User } from '../../../src/users/entities/user.entity';
+
+// ✅ Correct
+import { User } from '../../users/entities/user.entity';
+```
+
+### Error: `relation "permission" already exists` when running migrations
+
+**Cause**: Tables already exist in the database (created by TypeORM's `synchronize: true`).
+
+**Solution**:
+
+**Option 1**: Continue using the existing schema
+```bash
+# Migrations are ready for future use
+# No action needed if the schema is already correct
+```
+
+**Option 2**: Reset the database and use migrations
+```bash
+# Stop containers
+docker-compose down
+
+# Remove the database volume
+docker volume rm nest_rest_base_pgdata
+
+# Start services
+docker-compose up -d
+
+# Run migrations
+docker-compose exec app pnpm migration:run
 ```
 
 ## 🔧 Troubleshooting

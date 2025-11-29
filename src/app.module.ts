@@ -10,6 +10,7 @@ import { join } from 'path';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { QueueModule } from './queue/queue.module';
+import { SeedModule } from './seed/seed.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { QueueModule } from './queue/queue.module';
     UsersModule,
     AuthModule,
     QueueModule,
+    SeedModule,
   ],
   controllers: [],
   providers: [
