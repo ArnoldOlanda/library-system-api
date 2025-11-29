@@ -2,9 +2,11 @@
 import { MailerService } from '@nestjs-modules/mailer';
 import { Processor, WorkerHost, OnWorkerEvent } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
+import { Logger } from '@nestjs/common';
 
 @Processor('email')
 export class EmailProcessor extends WorkerHost {
+    private readonly logger = new Logger(EmailProcessor.name);
 
     constructor(private readonly mailerService: MailerService) {
         super();
@@ -17,7 +19,7 @@ export class EmailProcessor extends WorkerHost {
       case 'send-password-reset-email':
         return this.handleSendPasswordResetEmail(job);
       default:
-        console.log('Job no reconocido:', job.name);
+        this.logger.warn(`Job no reconocido: ${job.name}`);
     }
   }
 
@@ -26,7 +28,7 @@ export class EmailProcessor extends WorkerHost {
   ) {
     try {
         const { email, name, activationUrl } = job.data;
-        console.log(`Enviando correo de verificación a ${email}`,);
+        this.logger.log(`Enviando correo de verificación a ${email}`);
         
         const messageInfo = await this.mailerService.sendMail({
             to: email,
@@ -40,7 +42,7 @@ export class EmailProcessor extends WorkerHost {
         });
         return { ok: true , info: messageInfo };
     } catch (error) {
-        console.log(error);
+        this.logger.error(`Error enviando correo de verificación: ${error.message}`, error.stack);
     }
   }
 
@@ -49,7 +51,7 @@ export class EmailProcessor extends WorkerHost {
   ) {
     try {
         const { email, url } = job.data;
-        console.log(`Enviando correo de restablecimiento de contraseña a ${email}`,);
+        this.logger.log(`Enviando correo de restablecimiento de contraseña a ${email}`);
 
         const messageInfo = await this.mailerService.sendMail({
           to: email,
@@ -64,20 +66,21 @@ export class EmailProcessor extends WorkerHost {
 
         return { ok: true , info: messageInfo };
     } catch (error) {
-        console.log(error);
+        this.logger.error(`Error enviando correo de reseteo: ${error.message}`, error.stack);
     }
   }
 
   // Opcional: logs de eventos
   @OnWorkerEvent('completed')
   onCompleted(job: Job) {
-    console.log(`Job ${job.id} (${job.name}) completado`);
+    this.logger.debug(`Job ${job.id} (${job.name}) completado`);
   }
 
   @OnWorkerEvent('failed')
   onFailed(job: Job, err: Error) {
-    console.error(
+    this.logger.error(
       `Job ${job?.id} (${job?.name}) falló: ${err.message}`,
+      err.stack,
     );
   }
 }

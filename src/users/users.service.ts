@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, InternalServerErrorException, NotFoundException, Logger } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PaginationDto } from './dto/pagination.dto';
@@ -10,6 +10,8 @@ import { Role } from 'src/auth/entities/role.entity';
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
@@ -28,7 +30,7 @@ export class UsersService {
       });
       return await this.userRepository.save(user);
     } catch (error) {
-      console.log(error.message);
+      this.logger.error(`Error creating user: ${error.message}`, error.stack);
       
       if (error.code === '23505') {
         throw new ConflictException('Email already exists');

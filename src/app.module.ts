@@ -11,12 +11,15 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { QueueModule } from './queue/queue.module';
 import { SeedModule } from './seed/seed.module';
+import { HealthModule } from './health/health.module';
+import { validate } from './config/env.validation';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: `.env.${process.env.NODE_ENV || 'dev'}`,
+      validate,
     }),
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
@@ -54,6 +57,7 @@ import { SeedModule } from './seed/seed.module';
     AuthModule,
     QueueModule,
     SeedModule,
+    HealthModule,
   ],
   controllers: [],
   providers: [
