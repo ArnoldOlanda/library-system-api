@@ -13,6 +13,13 @@ import { QueueModule } from './queue/queue.module';
 import { SeedModule } from './seed/seed.module';
 import { HealthModule } from './health/health.module';
 import { validate } from './config/env.validation';
+import { CategoriasModule } from './categorias/categorias.module';
+import { ProductosModule } from './productos/productos.module';
+import { ProveedoresModule } from './proveedores/proveedores.module';
+import { ClientesModule } from './clientes/clientes.module';
+import { ComprasModule } from './compras/compras.module';
+import { VentasModule } from './ventas/ventas.module';
+import { ArqueosCajaModule } from './arqueos-caja/arqueos-caja.module';
 
 @Module({
   imports: [
@@ -58,6 +65,13 @@ import { validate } from './config/env.validation';
     QueueModule,
     SeedModule,
     HealthModule,
+    CategoriasModule,
+    ProductosModule,
+    ProveedoresModule,
+    ClientesModule,
+    ComprasModule,
+    VentasModule,
+    ArqueosCajaModule,
   ],
   controllers: [],
   providers: [

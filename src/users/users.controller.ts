@@ -14,7 +14,6 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PaginationDto } from './dto/pagination.dto';
 import { Auth } from 'src/auth/decorators/auth.decorator';
-import { Role } from 'src/auth/enums/validRoles.enum';
 import { Permission } from 'src/auth/enums/permissions.enum';
 import { ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 

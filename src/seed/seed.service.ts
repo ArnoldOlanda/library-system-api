@@ -51,6 +51,41 @@ export class SeedService {
             {name: 'read:permission', description: 'Read permission'},
             {name: 'update:permission', description: 'Update permission'},
             {name: 'delete:permission', description: 'Delete permission'},
+            // Categorías
+            {name: 'create:categoria', description: 'Create categoria'},
+            {name: 'read:categoria', description: 'Read categoria'},
+            {name: 'update:categoria', description: 'Update categoria'},
+            {name: 'delete:categoria', description: 'Delete categoria'},
+            // Productos
+            {name: 'create:producto', description: 'Create producto'},
+            {name: 'read:producto', description: 'Read producto'},
+            {name: 'update:producto', description: 'Update producto'},
+            {name: 'delete:producto', description: 'Delete producto'},
+            // Proveedores
+            {name: 'create:proveedor', description: 'Create proveedor'},
+            {name: 'read:proveedor', description: 'Read proveedor'},
+            {name: 'update:proveedor', description: 'Update proveedor'},
+            {name: 'delete:proveedor', description: 'Delete proveedor'},
+            // Compras
+            {name: 'create:compra', description: 'Create compra'},
+            {name: 'read:compra', description: 'Read compra'},
+            {name: 'update:compra', description: 'Update compra'},
+            {name: 'delete:compra', description: 'Delete compra'},
+            // Clientes
+            {name: 'create:cliente', description: 'Create cliente'},
+            {name: 'read:cliente', description: 'Read cliente'},
+            {name: 'update:cliente', description: 'Update cliente'},
+            {name: 'delete:cliente', description: 'Delete cliente'},
+            // Ventas
+            {name: 'create:venta', description: 'Create venta'},
+            {name: 'read:venta', description: 'Read venta'},
+            {name: 'update:venta', description: 'Update venta'},
+            {name: 'delete:venta', description: 'Delete venta'},
+            // Arqueos de Caja
+            {name: 'create:arqueo', description: 'Create arqueo'},
+            {name: 'read:arqueo', description: 'Read arqueo'},
+            {name: 'update:arqueo', description: 'Update arqueo'},
+            {name: 'delete:arqueo', description: 'Delete arqueo'},
         ])
         await this.permissionRepository.save(permissions);
 

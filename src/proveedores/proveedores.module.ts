@@ -1,0 +1,14 @@
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ProveedoresService } from './proveedores.service';
+import { ProveedoresController } from './proveedores.controller';
+import { Proveedor } from './entities/proveedor.entity';
+import { AuthModule } from '../auth/auth.module';
+
+@Module({
+  imports: [TypeOrmModule.forFeature([Proveedor]), AuthModule],
+  controllers: [ProveedoresController],
+  providers: [ProveedoresService],
+  exports: [TypeOrmModule],
+})
+export class ProveedoresModule {}

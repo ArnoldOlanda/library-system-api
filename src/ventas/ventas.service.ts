@@ -1,0 +1,205 @@
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Repository } from 'typeorm';
+import { CreateVentaDto } from './dto/create-venta.dto';
+import { UpdateVentaDto } from './dto/update-venta.dto';
+import { Venta } from './entities/venta.entity';
+import { DetalleVenta } from './entities/detalle-venta.entity';
+import { Cliente } from '../clientes/entities/cliente.entity';
+import { Producto } from '../productos/entities/producto.entity';
+import { PaginationDto } from '../users/dto/pagination.dto';
+
+@Injectable()
+export class VentasService {
+  private readonly logger = new Logger(VentasService.name);
+
+  constructor(
+    @InjectRepository(Venta)
+    private readonly ventaRepository: Repository<Venta>,
+    @InjectRepository(DetalleVenta)
+    private readonly detalleVentaRepository: Repository<DetalleVenta>,
+    @InjectRepository(Cliente)
+    private readonly clienteRepository: Repository<Cliente>,
+    @InjectRepository(Producto)
+    private readonly productoRepository: Repository<Producto>,
+    private readonly dataSource: DataSource,
+  ) {}
+
+  async create(createVentaDto: CreateVentaDto) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const { clienteId, detalles, fechaVenta, formaPago } = createVentaDto;
+
+      // Validar cliente (opcional)
+      let cliente: Cliente | null = null;
+      if (clienteId) {
+        cliente = await this.clienteRepository.findOne({
+          where: { id: clienteId },
+        });
+
+        if (!cliente) {
+          throw new NotFoundException(`Cliente with id ${clienteId} not found`);
+        }
+      }
+
+      // Calcular total y validar stock
+      let total = 0;
+      const detallesVenta: DetalleVenta[] = [];
+
+      for (const detalle of detalles) {
+        const producto = await this.productoRepository.findOne({
+          where: { id: detalle.productoId },
+        });
+
+        if (!producto) {
+          throw new NotFoundException(
+            `Producto with id ${detalle.productoId} not found`,
+          );
+        }
+
+        // Validar stock disponible
+        if (producto.stock < detalle.cantidad) {
+          throw new BadRequestException(
+            `Insufficient stock for product ${producto.nombre}. Available: ${producto.stock}, Requested: ${detalle.cantidad}`,
+          );
+        }
+
+        const subtotal = detalle.cantidad * Number(detalle.precioUnitario);
+        total += subtotal;
+
+        // Actualizar stock del producto
+        producto.stock -= detalle.cantidad;
+        await queryRunner.manager.save(producto);
+
+        // Crear detalle de venta
+        const detalleVenta = this.detalleVentaRepository.create({
+          producto,
+          cantidad: detalle.cantidad,
+          precioUnitario: detalle.precioUnitario,
+        });
+
+        detallesVenta.push(detalleVenta);
+      }
+
+      // Crear venta
+      const venta = this.ventaRepository.create({
+        cliente,
+        fechaVenta: new Date(fechaVenta),
+        total,
+        formaPago,
+        detalles: detallesVenta,
+      });
+
+      const savedVenta = await queryRunner.manager.save(venta);
+
+      await queryRunner.commitTransaction();
+
+      return savedVenta;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      this.logger.error(`Error creating venta: ${error.message}`, error.stack);
+
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException({
+        success: false,
+        message: 'Error creating venta',
+      });
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async findAll(paginationDto: PaginationDto) {
+    const { limit = 10, offset = 0 } = paginationDto;
+
+    const [ventas, total] = await this.ventaRepository.findAndCount({
+      relations: ['cliente', 'detalles', 'detalles.producto'],
+      take: limit,
+      skip: offset,
+      order: { fechaVenta: 'DESC' },
+    });
+
+    return {
+      ventas,
+      total,
+      limit,
+      offset,
+      pages: Math.ceil(total / limit),
+    };
+  }
+
+  async findOne(id: string) {
+    const venta = await this.ventaRepository.findOne({
+      where: { id },
+      relations: ['cliente', 'detalles', 'detalles.producto'],
+    });
+
+    if (!venta) {
+      throw new NotFoundException(`Venta with id ${id} not found`);
+    }
+
+    return venta;
+  }
+
+  update(_id: string, _updateVentaDto: UpdateVentaDto) {
+    throw new InternalServerErrorException({
+      success: false,
+      message: 'Update venta not implemented for data integrity',
+    });
+  }
+
+  async remove(id: string) {
+    const venta = await this.findOne(id);
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // Revertir stock de productos
+      for (const detalle of venta.detalles) {
+        const producto = await this.productoRepository.findOne({
+          where: { id: detalle.producto.id },
+        });
+
+        if (producto) {
+          producto.stock += detalle.cantidad;
+          await queryRunner.manager.save(producto);
+        }
+      }
+
+      await queryRunner.manager.remove(venta);
+      await queryRunner.commitTransaction();
+
+      return {
+        success: true,
+        message: 'Venta deleted successfully',
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      this.logger.error(`Error deleting venta: ${error.message}`, error.stack);
+
+      throw new InternalServerErrorException({
+        success: false,
+        message: 'Error deleting venta',
+      });
+    } finally {
+      await queryRunner.release();
+    }
+  }
+}
