@@ -8,6 +8,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
     const status = exception.getStatus();
+    const exceptionResponse = exception.getResponse();
+
+    // Si la respuesta es un objeto (errores de validación), extraer el mensaje
+    const message = typeof exceptionResponse === 'object' && exceptionResponse !== null
+      ? (exceptionResponse as any).message || exception.message
+      : exception.message;
 
     response
       .status(status)
@@ -15,7 +21,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
         status: 'error',
         error: exception.name,
         statusCode: status,
-        message: exception.message || null,
+        message: message,
         timestamp: new Date().toLocaleString(),
         path: request.url,
       });

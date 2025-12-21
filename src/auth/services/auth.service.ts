@@ -76,7 +76,8 @@ export class AuthService {
       });
 
       return res.status(HttpStatus.OK).json({
-        success: true,
+        status: "success",
+        timestamp: new Date().toISOString(),
         data: {
           user,
           token,

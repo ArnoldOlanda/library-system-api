@@ -1,15 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsBoolean,
-  IsDecimal,
   IsInt,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   IsUUID,
   MaxLength,
   Min,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateProductoDto {
   @IsString()
@@ -43,8 +44,9 @@ export class CreateProductoDto {
   })
   categoriaId: string;
 
-  @IsDecimal({ decimal_digits: '2' })
+  @IsNumber({ maxDecimalPlaces: 2 })
   @IsNotEmpty()
+  @Type(() => Number)
   @ApiProperty({
     description: 'Precio de compra del producto',
     type: 'number',
@@ -52,8 +54,9 @@ export class CreateProductoDto {
   })
   precioCompra: number;
 
-  @IsDecimal({ decimal_digits: '2' })
+  @IsNumber({ maxDecimalPlaces: 2 })
   @IsNotEmpty()
+  @Type(() => Number)
   @ApiProperty({
     description: 'Precio de venta del producto',
     type: 'number',
@@ -64,6 +67,7 @@ export class CreateProductoDto {
   @IsInt()
   @Min(0)
   @IsOptional()
+  @Type(() => Number)
   @ApiProperty({
     description: 'Cantidad en stock',
     type: 'number',
@@ -76,6 +80,7 @@ export class CreateProductoDto {
   @IsInt()
   @Min(0)
   @IsOptional()
+  @Type(() => Number)
   @ApiProperty({
     description: 'Stock mínimo de seguridad',
     type: 'number',
