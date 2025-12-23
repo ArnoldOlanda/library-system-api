@@ -47,7 +47,7 @@ export class ProveedoresService {
     const [proveedores, total] =
       await this.proveedorRepository.findAndCount({
         take: limit,
-        skip: offset,
+        skip: offset - 1,
         order: { createdAt: 'DESC' },
       });
 

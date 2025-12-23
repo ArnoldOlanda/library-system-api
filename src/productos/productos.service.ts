@@ -69,7 +69,7 @@ export class ProductosService {
     const [productos, total] = await this.productoRepository.findAndCount({
       relations: ['categoria'],
       take: limit,
-      skip: offset,
+      skip: offset - 1,
       order: { createdAt: 'DESC' },
     });
 
