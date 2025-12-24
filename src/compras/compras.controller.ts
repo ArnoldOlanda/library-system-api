@@ -13,7 +13,9 @@ import { ComprasService } from './compras.service';
 import { CreateCompraDto } from './dto/create-compra.dto';
 import { PaginationDto } from '../users/dto/pagination.dto';
 import { Auth } from '../auth/decorators/auth.decorator';
+import { GetUser } from '../auth/decorators/user.decorator';
 import { Permission } from '../auth/enums/permissions.enum';
+import { User as UserEntity } from '../users/entities/user.entity';
 
 @ApiBearerAuth()
 @ApiTags('compras')
@@ -27,8 +29,11 @@ export class ComprasController {
   @ApiResponse({ status: 400, description: 'Datos inválidos.' })
   @ApiResponse({ status: 404, description: 'Proveedor o producto no encontrado.' })
   @ApiResponse({ status: 500, description: 'Error interno del servidor.' })
-  create(@Body() createCompraDto: CreateCompraDto) {
-    return this.comprasService.create(createCompraDto);
+  create(
+    @Body() createCompraDto: CreateCompraDto,
+    @GetUser() user: UserEntity,
+  ) {
+    return this.comprasService.create(createCompraDto, user);
   }
 
   @Get()

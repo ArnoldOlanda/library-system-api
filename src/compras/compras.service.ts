@@ -13,6 +13,12 @@ import { DetalleCompra } from './entities/detalle-compra.entity';
 import { Proveedor } from '../proveedores/entities/proveedor.entity';
 import { Producto } from '../productos/entities/producto.entity';
 import { PaginationDto } from '../users/dto/pagination.dto';
+import { MovimientosAlmacenService } from '../movimientos-almacen/movimientos-almacen.service';
+import {
+  TipoMovimiento,
+  OrigenMovimiento,
+} from '../movimientos-almacen/entities/movimiento-almacen.entity';
+import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class ComprasService {
@@ -28,9 +34,10 @@ export class ComprasService {
     @InjectRepository(Producto)
     private readonly productoRepository: Repository<Producto>,
     private readonly dataSource: DataSource,
+    private readonly movimientosAlmacenService: MovimientosAlmacenService,
   ) {}
 
-  async create(createCompraDto: CreateCompraDto) {
+  async create(createCompraDto: CreateCompraDto, user: User) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -65,10 +72,6 @@ export class ComprasService {
         const subtotal = detalle.cantidad * Number(detalle.precioUnitario);
         total += subtotal;
 
-        // Actualizar stock del producto
-        producto.stock += detalle.cantidad;
-        await queryRunner.manager.save(producto);
-
         // Crear detalle de compra
         const detalleCompra = this.detalleCompraRepository.create({
           producto,
@@ -89,9 +92,25 @@ export class ComprasService {
 
       const savedCompra = await queryRunner.manager.save(compra);
 
+      // Registrar movimientos de almacén para cada detalle
+      for (const detalle of savedCompra.detalles) {
+        await this.movimientosAlmacenService.create(
+          {
+            productoId: detalle.producto.id,
+            tipoMovimiento: TipoMovimiento.ENTRADA,
+            origenMovimiento: OrigenMovimiento.COMPRA,
+            cantidad: detalle.cantidad,
+            referenciaId: savedCompra.id,
+            observaciones: `Compra #${savedCompra.id} - Proveedor: ${proveedor.nombre}`,
+          },
+          user,
+          queryRunner.manager,
+        );
+      }
+
       await queryRunner.commitTransaction();
 
-      return savedCompra;
+      return this.findOne(savedCompra.id);
     } catch (error) {
       await queryRunner.rollbackTransaction();
       this.logger.error(`Error creating compra: ${error.message}`, error.stack);

@@ -20,6 +20,7 @@ import { ClientesModule } from './clientes/clientes.module';
 import { ComprasModule } from './compras/compras.module';
 import { VentasModule } from './ventas/ventas.module';
 import { ArqueosCajaModule } from './arqueos-caja/arqueos-caja.module';
+import { MovimientosAlmacenModule } from './movimientos-almacen/movimientos-almacen.module';
 
 @Module({
   imports: [
@@ -72,6 +73,7 @@ import { ArqueosCajaModule } from './arqueos-caja/arqueos-caja.module';
     ComprasModule,
     VentasModule,
     ArqueosCajaModule,
+    MovimientosAlmacenModule,
   ],
   controllers: [],
   providers: [

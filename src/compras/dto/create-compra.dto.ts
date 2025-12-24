@@ -3,9 +3,9 @@ import { Type } from 'class-transformer';
 import {
   IsArray,
   IsDateString,
-  IsDecimal,
   IsInt,
   IsNotEmpty,
+  IsNumber,
   IsUUID,
   Min,
   ValidateNested,
@@ -23,6 +23,7 @@ export class DetalleCompraDto {
 
   @IsInt()
   @Min(1)
+  @Type(() => Number)
   @IsNotEmpty()
   @ApiProperty({
     description: 'Cantidad comprada',
@@ -32,7 +33,9 @@ export class DetalleCompraDto {
   })
   cantidad: number;
 
-  @IsDecimal({ decimal_digits: '2' })
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Type(() => Number)
   @IsNotEmpty()
   @ApiProperty({
     description: 'Precio unitario del producto',
