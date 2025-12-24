@@ -41,6 +41,14 @@ export class ArqueosCajaController {
     return this.arqueosCajaService.findAll(paginationDto);
   }
 
+  @Get('open/today')
+  @Auth({ permissions: [Permission.READ_ARQUEO] })
+  @ApiResponse({ status: 200, description: 'Caja abierta obtenida correctamente.' })
+  @ApiResponse({ status: 404, description: 'No hay caja abierta para el día de hoy.' })
+  findOpenCaja() {
+    return this.arqueosCajaService.findOpenCaja();
+  }
+
   @Get(':id')
   @Auth({ permissions: [Permission.READ_ARQUEO] })
   @ApiResponse({ status: 200, description: 'Arqueo de caja obtenido correctamente.' })
@@ -48,6 +56,7 @@ export class ArqueosCajaController {
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.arqueosCajaService.findOne(id);
   }
+
 
   @Patch(':id')
   @Auth({ permissions: [Permission.UPDATE_ARQUEO] })
@@ -67,4 +76,5 @@ export class ArqueosCajaController {
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.arqueosCajaService.remove(id);
   }
+
 }

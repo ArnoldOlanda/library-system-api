@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDateString, IsDecimal, IsNotEmpty } from 'class-validator';
+import { IsDateString, IsDecimal, IsNotEmpty, IsNumber } from 'class-validator';
 
 export class CreateArqueoCajaDto {
   @IsDateString()
@@ -11,7 +11,7 @@ export class CreateArqueoCajaDto {
   })
   fechaArqueo: string;
 
-  @IsDecimal({ decimal_digits: '2' })
+  @IsNumber({ maxDecimalPlaces: 2 })
   @IsNotEmpty()
   @ApiProperty({
     description: 'Monto inicial de caja',
@@ -20,7 +20,7 @@ export class CreateArqueoCajaDto {
   })
   montoInicial: number;
 
-  @IsDecimal({ decimal_digits: '2' })
+  @IsNumber({ maxDecimalPlaces: 2 })
   @IsNotEmpty()
   @ApiProperty({
     description: 'Total recaudado',
@@ -29,7 +29,7 @@ export class CreateArqueoCajaDto {
   })
   totalRecaudado: number;
 
-  @IsDecimal({ decimal_digits: '2' })
+  @IsNumber({ maxDecimalPlaces: 2 })
   @IsNotEmpty()
   @ApiProperty({
     description: 'Total en efectivo',
@@ -38,7 +38,7 @@ export class CreateArqueoCajaDto {
   })
   totalEfectivo: number;
 
-  @IsDecimal({ decimal_digits: '2' })
+  @IsNumber({ maxDecimalPlaces: 2 })
   @IsNotEmpty()
   @ApiProperty({
     description: 'Total en tarjeta',
@@ -47,7 +47,7 @@ export class CreateArqueoCajaDto {
   })
   totalTarjeta: number;
 
-  @IsDecimal({ decimal_digits: '2' })
+  @IsNumber({ maxDecimalPlaces: 2 })
   @IsNotEmpty()
   @ApiProperty({
     description: 'Diferencia entre monto esperado y recaudado',

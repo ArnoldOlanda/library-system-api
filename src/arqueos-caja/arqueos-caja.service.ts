@@ -74,7 +74,29 @@ export class ArqueosCajaService {
     return arqueo;
   }
 
+  async findOpenCaja() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const openCaja = await this.arqueoCajaRepository
+      .createQueryBuilder('arqueo')
+      .where('arqueo.fechaArqueo >= :today', { today })
+      .andWhere('arqueo.fechaArqueo < :tomorrow', { tomorrow })
+      .orderBy('arqueo.fechaArqueo', 'DESC')
+      .getOne();
+
+    if (!openCaja) {
+      throw new NotFoundException('No hay caja abierta para el día de hoy');
+    }
+
+    return openCaja;
+  }
+
   async update(id: string, updateArqueoCajaDto: UpdateArqueoCajaDto) {
+
     try {
       const arqueo = await this.arqueoCajaRepository.findOne({
         where: { id },
