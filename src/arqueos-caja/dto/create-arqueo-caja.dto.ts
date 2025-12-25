@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDateString, IsDecimal, IsNotEmpty, IsNumber } from 'class-validator';
+import { IsBoolean, IsDateString, IsDecimal, IsNotEmpty, IsNumber } from 'class-validator';
 
 export class CreateArqueoCajaDto {
   @IsDateString()
@@ -55,4 +55,13 @@ export class CreateArqueoCajaDto {
     example: 0.0,
   })
   diferencia: number;
+
+  @IsBoolean()
+  @IsNotEmpty()
+  @ApiProperty({
+    description: 'Estado de la caja',
+    type: 'boolean',
+    example: true,
+  })
+  open: boolean;
 }

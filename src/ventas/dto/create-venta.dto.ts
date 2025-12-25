@@ -7,6 +7,7 @@ import {
   IsEnum,
   IsInt,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsUUID,
   Min,
@@ -35,7 +36,7 @@ export class DetalleVentaDto {
   })
   cantidad: number;
 
-  @IsDecimal({ decimal_digits: '2' })
+  @IsNumber({ maxDecimalPlaces: 2 })
   @IsNotEmpty()
   @ApiProperty({
     description: 'Precio unitario del producto',

@@ -11,7 +11,7 @@ import {
 import { ApiBearerAuth, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { VentasService } from './ventas.service';
 import { CreateVentaDto } from './dto/create-venta.dto';
-import { PaginationDto } from '../users/dto/pagination.dto';
+import { FindVentasDto } from './dto/find-ventas.dto';
 import { Auth } from '../auth/decorators/auth.decorator';
 import { Permission } from '../auth/enums/permissions.enum';
 
@@ -36,8 +36,8 @@ export class VentasController {
   @ApiResponse({ status: 200, description: 'Lista de ventas obtenida correctamente.' })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 403, description: 'Prohibido.' })
-  findAll(@Query() paginationDto: PaginationDto) {
-    return this.ventasService.findAll(paginationDto);
+  findAll(@Query() findVentasDto: FindVentasDto) {
+    return this.ventasService.findAll(findVentasDto);
   }
 
   @Get(':id')

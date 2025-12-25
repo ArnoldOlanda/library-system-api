@@ -6,14 +6,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { Between, DataSource, Repository } from 'typeorm';
 import { CreateVentaDto } from './dto/create-venta.dto';
 import { UpdateVentaDto } from './dto/update-venta.dto';
 import { Venta } from './entities/venta.entity';
 import { DetalleVenta } from './entities/detalle-venta.entity';
 import { Cliente } from '../clientes/entities/cliente.entity';
 import { Producto } from '../productos/entities/producto.entity';
-import { PaginationDto } from '../users/dto/pagination.dto';
+import { FindVentasDto } from './dto/find-ventas.dto';
 
 @Injectable()
 export class VentasService {
@@ -124,15 +124,34 @@ export class VentasService {
     }
   }
 
-  async findAll(paginationDto: PaginationDto) {
-    const { limit = 10, offset = 0 } = paginationDto;
+  async findAll(findVentasDto: FindVentasDto) {
+    const { limit = 10, offset = 0, startDate, endDate } = findVentasDto;
 
-    const [ventas, total] = await this.ventaRepository.findAndCount({
+    const queryOptions: any = {
       relations: ['cliente', 'detalles', 'detalles.producto'],
       take: limit,
       skip: offset,
       order: { fechaVenta: 'DESC' },
-    });
+      where: {},
+    };
+
+    if (startDate && endDate) {
+      // Ajustar fechas para cubrir el rango completo del día
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+
+      queryOptions.where.fechaVenta = Between(start, end);
+    } else if (startDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(startDate);
+      end.setHours(23, 59, 59, 999);
+      queryOptions.where.fechaVenta = Between(start, end);
+    }
+
+    const [ventas, total] = await this.ventaRepository.findAndCount(queryOptions);
 
     return {
       ventas,

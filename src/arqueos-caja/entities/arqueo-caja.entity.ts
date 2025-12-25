@@ -13,7 +13,7 @@ export class ArqueoCaja {
   @PrimaryColumn({ type: 'uuid' })
   id: string;
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'date' })
   fechaArqueo: Date;
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
@@ -30,6 +30,9 @@ export class ArqueoCaja {
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   diferencia: number;
+
+  @Column({ type: 'boolean', default: true })
+  open: boolean;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
