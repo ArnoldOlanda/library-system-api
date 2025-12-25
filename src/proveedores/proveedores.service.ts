@@ -95,19 +95,20 @@ export class ProveedoresService {
         throw error;
       }
 
-      throw new InternalServerErrorException({
-        success: false,
-        message: 'Error updating proveedor',
-      });
+      throw new InternalServerErrorException('Error updating proveedor');
     }
   }
 
   async remove(id: string) {
     const proveedor = await this.findOne(id);
-    await this.proveedorRepository.remove(proveedor);
+
+    if(!proveedor){
+      throw new NotFoundException(`Proveedor with id ${id} not found`);
+    }
+
+    await this.proveedorRepository.softRemove(proveedor);
 
     return {
-      success: true,
       message: 'Proveedor deleted successfully',
     };
   }

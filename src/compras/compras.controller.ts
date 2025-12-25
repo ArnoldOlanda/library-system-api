@@ -58,7 +58,10 @@ export class ComprasController {
   @ApiResponse({ status: 200, description: 'Compra eliminada correctamente.' })
   @ApiResponse({ status: 404, description: 'Compra no encontrada.' })
   @ApiResponse({ status: 500, description: 'Error interno del servidor.' })
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.comprasService.remove(id);
+  remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @GetUser() user: UserEntity,
+  ) {
+    return this.comprasService.remove(id, user);
   }
 }

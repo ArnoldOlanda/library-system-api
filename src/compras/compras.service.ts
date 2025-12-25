@@ -167,7 +167,7 @@ export class ComprasService {
     });
   }
 
-  async remove(id: string) {
+  async remove(id: string, user: User) {
     const compra = await this.findOne(id);
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -175,16 +175,20 @@ export class ComprasService {
     await queryRunner.startTransaction();
 
     try {
-      // Revertir stock de productos
+      // Registrar movimientos de almacén para revertir stock
       for (const detalle of compra.detalles) {
-        const producto = await this.productoRepository.findOne({
-          where: { id: detalle.producto.id },
-        });
-
-        if (producto) {
-          producto.stock -= detalle.cantidad;
-          await queryRunner.manager.save(producto);
-        }
+        await this.movimientosAlmacenService.create(
+          {
+            productoId: detalle.producto.id,
+            tipoMovimiento: TipoMovimiento.SALIDA,
+            origenMovimiento: OrigenMovimiento.DEVOLUCION_COMPRA,
+            cantidad: detalle.cantidad,
+            referenciaId: compra.id,
+            observaciones: `Anulación de Compra #${compra.id} - Proveedor: ${compra.proveedor.nombre}`,
+          },
+          user,
+          queryRunner.manager,
+        );
       }
 
       await queryRunner.manager.remove(compra);

@@ -14,6 +14,9 @@ import { DetalleVenta } from './entities/detalle-venta.entity';
 import { Cliente } from '../clientes/entities/cliente.entity';
 import { Producto } from '../productos/entities/producto.entity';
 import { FindVentasDto } from './dto/find-ventas.dto';
+import { MovimientosAlmacenService } from '../movimientos-almacen/movimientos-almacen.service';
+import { User } from '../users/entities/user.entity';
+import { TipoMovimiento, OrigenMovimiento } from '../movimientos-almacen/entities/movimiento-almacen.entity';
 
 @Injectable()
 export class VentasService {
@@ -29,9 +32,10 @@ export class VentasService {
     @InjectRepository(Producto)
     private readonly productoRepository: Repository<Producto>,
     private readonly dataSource: DataSource,
+    private readonly movimientosAlmacenService: MovimientosAlmacenService,
   ) {}
 
-  async create(createVentaDto: CreateVentaDto) {
+  async create(createVentaDto: CreateVentaDto, user: User) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -76,10 +80,6 @@ export class VentasService {
         const subtotal = detalle.cantidad * Number(detalle.precioUnitario);
         total += subtotal;
 
-        // Actualizar stock del producto
-        producto.stock -= detalle.cantidad;
-        await queryRunner.manager.save(producto);
-
         // Crear detalle de venta
         const detalleVenta = this.detalleVentaRepository.create({
           producto,
@@ -100,6 +100,22 @@ export class VentasService {
       });
 
       const savedVenta = await queryRunner.manager.save(venta);
+
+      // Registrar movimientos de almacén
+      for (const detalle of savedVenta.detalles) {
+        await this.movimientosAlmacenService.create(
+          {
+            productoId: detalle.producto.id,
+            tipoMovimiento: TipoMovimiento.SALIDA,
+            origenMovimiento: OrigenMovimiento.VENTA,
+            cantidad: detalle.cantidad,
+            referenciaId: savedVenta.id,
+            observaciones: `Venta #${savedVenta.id}${savedVenta.cliente ? ` - Cliente: ${savedVenta.cliente.nombre}` : ''}`,
+          },
+          user,
+          queryRunner.manager,
+        );
+      }
 
       await queryRunner.commitTransaction();
 
@@ -182,7 +198,7 @@ export class VentasService {
     });
   }
 
-  async remove(id: string) {
+  async remove(id: string, user: User) {
     const venta = await this.findOne(id);
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -190,16 +206,20 @@ export class VentasService {
     await queryRunner.startTransaction();
 
     try {
-      // Revertir stock de productos
+      // Registrar movimientos de almacén para revertir stock
       for (const detalle of venta.detalles) {
-        const producto = await this.productoRepository.findOne({
-          where: { id: detalle.producto.id },
-        });
-
-        if (producto) {
-          producto.stock += detalle.cantidad;
-          await queryRunner.manager.save(producto);
-        }
+        await this.movimientosAlmacenService.create(
+          {
+            productoId: detalle.producto.id,
+            tipoMovimiento: TipoMovimiento.ENTRADA,
+            origenMovimiento: OrigenMovimiento.DEVOLUCION_VENTA,
+            cantidad: detalle.cantidad,
+            referenciaId: venta.id,
+            observaciones: `Anulación de Venta #${venta.id}${venta.cliente ? ` - Cliente: ${venta.cliente.nombre}` : ''}`,
+          },
+          user,
+          queryRunner.manager,
+        );
       }
 
       await queryRunner.manager.remove(venta);

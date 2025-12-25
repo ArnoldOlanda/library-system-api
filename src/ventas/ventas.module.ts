@@ -7,11 +7,13 @@ import { DetalleVenta } from './entities/detalle-venta.entity';
 import { Cliente } from '../clientes/entities/cliente.entity';
 import { Producto } from '../productos/entities/producto.entity';
 import { AuthModule } from '../auth/auth.module';
+import { MovimientosAlmacenModule } from '../movimientos-almacen/movimientos-almacen.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Venta, DetalleVenta, Cliente, Producto]),
     AuthModule,
+    MovimientosAlmacenModule,
   ],
   controllers: [VentasController],
   providers: [VentasService],
