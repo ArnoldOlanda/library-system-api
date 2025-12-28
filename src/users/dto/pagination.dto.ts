@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsOptional, IsPositive, Min } from 'class-validator';
+import { IsOptional, IsPositive, IsString, Min } from 'class-validator';
 
 export class PaginationDto {
   @IsOptional()
@@ -22,4 +22,12 @@ export class PaginationDto {
     default: 0,
   })
   offset?: number = 0;
+
+  @IsOptional()
+  @IsString()
+  @ApiProperty({
+    description: 'Search term to filter results',
+    type: 'string',
+  })
+  search?: string;
 }

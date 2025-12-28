@@ -64,23 +64,39 @@ export class ProductosService {
   }
 
   async findAll(paginationDto: PaginationDto) {
-    const { limit = 10, offset = 0 } = paginationDto;
+  const { limit, offset = 0, search } = paginationDto;
 
-    const [productos, total] = await this.productoRepository.findAndCount({
-      relations: ['categoria'],
-      take: limit,
-      skip: offset - 1,
-      order: { createdAt: 'DESC' },
-    });
+  const queryBuilder = this.productoRepository
+    .createQueryBuilder('producto')
+    .leftJoinAndSelect('producto.categoria', 'categoria')
+    .orderBy('producto.createdAt', 'DESC');
 
-    return {
-      productos,
-      total,
+  if (search) {
+    queryBuilder.where('producto.nombre ILIKE :search', { search: `%${search}%` })
+      .orWhere('producto.codigo ILIKE :search', { search: `%${search}%` })
+      .orWhere('producto.descripcion ILIKE :search', { search: `%${search}%` })
+      .orWhere('categoria.nombre ILIKE :search', { search: `%${search}%` });
+  }
+
+  // Aplicar paginación solo si limit está definido
+  if (limit) {
+    const skip = offset > 0 ? (offset - 1) * limit : 0;
+    queryBuilder.take(limit).skip(skip);
+  }
+
+  const [productos, total] = await queryBuilder.getManyAndCount();
+
+  // Retornar con información de paginación
+  return {
+    productos,
+    total,
+    ...(limit && {
       limit,
       offset,
       pages: Math.ceil(total / limit),
-    };
-  }
+    }),
+  };
+}
 
   async findOne(id: string) {
     const producto = await this.productoRepository.findOne({

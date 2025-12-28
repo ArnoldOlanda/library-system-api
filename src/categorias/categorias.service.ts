@@ -42,21 +42,31 @@ export class CategoriasService {
   }
 
   async findAll(paginationDto: PaginationDto) {
-    const { limit = 10, offset = 0 } = paginationDto;
+    const { limit, offset = 0, search } = paginationDto;
 
-    const [categorias, total] =
-      await this.categoriaRepository.findAndCount({
-        take: limit,
-        skip: offset - 1,
-        order: { createdAt: 'DESC' },
-      });
+    const queryBuilder = this.categoriaRepository.createQueryBuilder('categoria');
+
+    if (search) {
+      queryBuilder.where('categoria.nombre ILIKE :search', { search: `%${search}%` })
+        .orWhere('categoria.descripcion ILIKE :search', { search: `%${search}%` })
+        .orderBy('categoria.createdAt', 'DESC');
+    }
+
+    if(limit){
+      const skip = offset > 0 ? (offset - 1) * limit : 0;
+      queryBuilder.skip(skip).take(limit);
+    }
+
+    const [categoriasFiltered, totalFiltered] = await queryBuilder.getManyAndCount();
 
     return {
-      categorias,
-      total,
-      limit,
-      offset,
-      pages: Math.ceil(total / limit),
+      categorias: categoriasFiltered,
+      total: totalFiltered,
+      ...(limit && {
+        limit,
+        offset,
+        pages: Math.ceil(totalFiltered / limit),
+      }),
     };
   }
 
