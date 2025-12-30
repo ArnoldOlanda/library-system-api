@@ -42,20 +42,32 @@ export class ClientesService {
   }
 
   async findAll(paginationDto: PaginationDto) {
-    const { limit = 10, offset = 0 } = paginationDto;
+    const { limit, offset = 0, search } = paginationDto;
 
-    const [clientes, total] = await this.clienteRepository.findAndCount({
-      take: limit,
-      skip: offset - 1,
-      order: { createdAt: 'DESC' },
-    });
+    const queryBuilder = this.clienteRepository.createQueryBuilder('cliente');
+
+    if (search) {
+      queryBuilder.where('cliente.nombre ILIKE :search', { search: `%${search}%` })
+        .orWhere('cliente.dni ILIKE :search', { search: `%${search}%` })
+        .orWhere('cliente.correo ILIKE :search', { search: `%${search}%` })
+        .orderBy('cliente.createdAt', 'DESC');
+    }
+
+    if(limit){
+      const skip = offset > 0 ? (offset - 1) * limit : 0;
+      queryBuilder.skip(skip).take(limit);
+    }
+
+    const [clientes, total] = await queryBuilder.getManyAndCount();
 
     return {
       clientes,
       total,
-      limit,
-      offset,
-      pages: Math.ceil(total / limit),
+      ...(limit && {
+        limit,
+        offset,
+        pages: Math.ceil(total / limit)
+      }),
     };
   }
 

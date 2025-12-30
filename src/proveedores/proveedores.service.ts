@@ -42,21 +42,32 @@ export class ProveedoresService {
   }
 
   async findAll(paginationDto: PaginationDto) {
-    const { limit = 10, offset = 0 } = paginationDto;
+    const { limit, offset = 0, search } = paginationDto;
 
-    const [proveedores, total] =
-      await this.proveedorRepository.findAndCount({
-        take: limit,
-        skip: offset - 1,
-        order: { createdAt: 'DESC' },
-      });
+    const queryBuilder = this.proveedorRepository.createQueryBuilder('proveedor');
+
+    if (search) {
+      queryBuilder.where('proveedor.nombre ILIKE :search', { search: `%${search}%` })
+        .orWhere('proveedor.contacto ILIKE :search', { search: `%${search}%` })
+        .orWhere('proveedor.correo ILIKE :search', { search: `%${search}%` })
+        .orderBy('proveedor.createdAt', 'DESC');
+    }
+
+    if(limit){
+      const skip = offset > 0 ? (offset - 1) * limit : 0;
+      queryBuilder.skip(skip).take(limit);
+    }
+
+    const [proveedores, total] = await queryBuilder.getManyAndCount();
 
     return {
       proveedores,
       total,
-      limit,
-      offset,
-      pages: Math.ceil(total / limit),
+      ...(limit && {
+        limit,
+        offset,
+        pages: Math.ceil(total / limit),
+      }),
     };
   }
 

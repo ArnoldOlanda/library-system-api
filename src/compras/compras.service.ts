@@ -129,21 +129,33 @@ export class ComprasService {
   }
 
   async findAll(paginationDto: PaginationDto) {
-    const { limit = 10, offset = 0 } = paginationDto;
+    const { limit, offset = 0, search } = paginationDto;
 
-    const [compras, total] = await this.compraRepository.findAndCount({
-      relations: ['proveedor', 'detalles', 'detalles.producto'],
-      take: limit,
-      skip: offset,
-      order: { fechaCompra: 'DESC' },
-    });
+    const queryBuilder = this.compraRepository.createQueryBuilder('compra')
+      .leftJoinAndSelect('compra.proveedor', 'proveedor')
+      .leftJoinAndSelect('compra.detalles', 'detalles')
+      .leftJoinAndSelect('detalles.producto', 'producto')
+      .orderBy('compra.fechaCompra', 'DESC');
 
+    if (search) {
+      queryBuilder.where('proveedor.nombre ILIKE :search', { search: `%${search}%` })
+        .orWhere('producto.nombre ILIKE :search', { search: `%${search}%` });
+    }
+
+    if(limit){
+      const skip = offset > 0 ? (offset - 1) * limit : 0;
+      queryBuilder.skip(skip).take(limit);
+    }
+
+    const [compras, total] = await queryBuilder.getManyAndCount();
     return {
       compras,
       total,
-      limit,
-      offset,
-      pages: Math.ceil(total / limit),
+      ...(limit && {
+        limit,
+        offset,
+        pages: Math.ceil(total / limit),
+      }),
     };
   }
 
