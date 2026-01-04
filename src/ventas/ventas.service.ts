@@ -141,15 +141,24 @@ export class VentasService {
   }
 
   async findAll(findVentasDto: FindVentasDto) {
-    const { limit = 10, offset = 0, startDate, endDate } = findVentasDto;
+    const { limit, offset = 0, startDate, endDate, search } = findVentasDto;
 
-    const queryOptions: any = {
-      relations: ['cliente', 'detalles', 'detalles.producto'],
-      take: limit,
-      skip: offset,
-      order: { fechaVenta: 'DESC' },
-      where: {},
-    };
+    const queryBuilder = this.ventaRepository.createQueryBuilder('venta')
+      .leftJoinAndSelect('venta.cliente', 'cliente')
+      .leftJoinAndSelect('venta.detalles', 'detalles')
+      .leftJoinAndSelect('detalles.producto', 'producto')
+      .orderBy('venta.fechaVenta', 'DESC');
+
+    if(search){
+      queryBuilder.where('cliente.nombre ILIKE :search', { search: `%${search}%` })
+        .orWhere('cliente.dni ILIKE :search', { search: `%${search}%` })
+        .orWhere('producto.nombre ILIKE :search', { search: `%${search}%` });
+    }
+
+    if(limit){
+      const skip = offset > 0 ? (offset - 1) * limit : 0;
+      queryBuilder.skip(skip).take(limit);
+    }
 
     if (startDate && endDate) {
       // Ajustar fechas para cubrir el rango completo del día
@@ -157,24 +166,19 @@ export class VentasService {
       start.setHours(0, 0, 0, 0);
       const end = new Date(endDate);
       end.setHours(23, 59, 59, 999);
-
-      queryOptions.where.fechaVenta = Between(start, end);
-    } else if (startDate) {
-      const start = new Date(startDate);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(startDate);
-      end.setHours(23, 59, 59, 999);
-      queryOptions.where.fechaVenta = Between(start, end);
+      queryBuilder.andWhere('venta.fechaVenta BETWEEN :start AND :end', { start, end });
     }
 
-    const [ventas, total] = await this.ventaRepository.findAndCount(queryOptions);
+    const [ventas, total] = await queryBuilder.getManyAndCount();
 
     return {
       ventas,
       total,
-      limit,
-      offset,
-      pages: Math.ceil(total / limit),
+      ...(limit && {
+        limit,
+        offset,
+        pages: Math.ceil(total / limit),
+      })
     };
   }
 
