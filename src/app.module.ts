@@ -22,6 +22,8 @@ import { VentasModule } from './ventas/ventas.module';
 import { ArqueosCajaModule } from './arqueos-caja/arqueos-caja.module';
 import { MovimientosAlmacenModule } from './movimientos-almacen/movimientos-almacen.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { ReportesModule } from './reportes/reportes.module';
+import { PrinterModule } from './printer/printer.module';
 
 @Module({
   imports: [
@@ -76,6 +78,8 @@ import { DashboardModule } from './dashboard/dashboard.module';
     ArqueosCajaModule,
     MovimientosAlmacenModule,
     DashboardModule,
+    ReportesModule,
+    PrinterModule
   ],
   controllers: [],
   providers: [

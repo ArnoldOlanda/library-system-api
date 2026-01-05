@@ -17,6 +17,8 @@ export enum FormaPago {
   EFECTIVO = 'Efectivo',
   TARJETA = 'Tarjeta',
   TRANSFERENCIA = 'Transferencia',
+  YAPE = 'Yape',
+  PLIN = 'Plin',
 }
 
 @Entity('ventas')
