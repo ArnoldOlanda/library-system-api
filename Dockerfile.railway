@@ -1,0 +1,60 @@
+# ===================================
+# Dockerfile optimizado para Railway
+# ===================================
+
+# Stage 1: Builder - Compila la aplicación
+FROM node:20-alpine AS builder
+
+# Instalar pnpm
+RUN npm install -g pnpm
+
+# Establecer directorio de trabajo
+WORKDIR /app
+
+# Copiar archivos de configuración de pnpm
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+# Instalar dependencias
+RUN pnpm install --frozen-lockfile
+
+# Copiar código fuente
+COPY . .
+
+# Compilar TypeScript
+RUN pnpm run build
+
+# ===================================
+# Stage 2: Production - Imagen final
+# ===================================
+FROM node:20-alpine
+
+# Instalar pnpm (no necesitamos netcat en Railway)
+RUN npm install -g pnpm
+
+# Establecer directorio de trabajo
+WORKDIR /app
+
+# Copiar archivos de configuración
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+# Instalar solo dependencias de producción
+RUN pnpm install --frozen-lockfile --prod
+
+# Copiar código compilado desde builder
+COPY --from=builder /app/dist ./dist
+
+# Copiar archivos de configuración TypeScript (necesarios para migrations)
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
+COPY --from=builder /app/tsconfig.build.json ./tsconfig.build.json
+
+# Copiar carpeta src (necesaria para migrations)
+COPY --from=builder /app/src ./src
+
+# Copiar templates de email si existen
+COPY --from=builder /app/src/mails ./src/mails
+
+# Railway proporciona la variable PORT automáticamente
+# La aplicación ya usa process.env.PORT
+
+# Comando de inicio simplificado para Railway
+CMD ["sh", "-c", "pnpm migration:run && node dist/main"]
