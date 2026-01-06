@@ -67,6 +67,10 @@ class EnvironmentVariables {
   @IsOptional()
   REDIS_PORT: number;
 
+  @IsString()
+  @IsOptional()
+  REDIS_PASSWORD: string;
+
   // Google OAuth (Optional)
   @IsString()
   @IsOptional()

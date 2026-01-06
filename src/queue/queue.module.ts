@@ -13,6 +13,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         connection: {
           host: config.get('REDIS_HOST'),
           port: +(config.get('REDIS_PORT') || 6379),
+          password: config.get('REDIS_PASSWORD') || undefined,
         },
       }),
     }),
