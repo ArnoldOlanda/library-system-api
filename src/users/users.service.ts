@@ -43,20 +43,32 @@ export class UsersService {
   }
 
   async findAll(paginationDto: PaginationDto) {
-    const { limit = 10, offset = 0 } = paginationDto;
+    const { limit, offset = 0, search } = paginationDto;
 
-    const [users, total] = await this.userRepository.findAndCount({
-      relations: ['roles'],
-      take: limit,
-      skip: offset,
-    });
+    const queryBuilder = this.userRepository.createQueryBuilder('user')
+      .leftJoinAndSelect('user.roles', 'role');
+
+    if (search) {
+      queryBuilder.where('user.name ILIKE :search', { search: `%${search}%` })
+        .orWhere('user.email ILIKE :search', { search: `%${search}%` })
+        .orderBy('user.createdAt', 'DESC');
+    }
+
+    if(limit){
+      const skip = offset > 0 ? (offset - 1) * limit : 0;
+      queryBuilder.skip(skip).take(limit);
+    }
+
+    const [users, total] = await queryBuilder.getManyAndCount();
 
     return {
       users,
       total,
-      limit,
-      offset,
-      pages: Math.ceil(total / limit),
+      ...(limit && {
+        limit,
+        offset,
+        pages: Math.ceil(total / limit),
+      }),
     };
   }
 
