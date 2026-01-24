@@ -22,6 +22,9 @@ export class Producto {
   @Column({ type: 'varchar', length: 50, unique: true })
   codigo: string;
 
+  @Column({ type: 'varchar', length: 100, unique: true, nullable: true })
+  codigoBarras: string;
+
   @Column({ type: 'varchar', length: 200 })
   nombre: string;
 

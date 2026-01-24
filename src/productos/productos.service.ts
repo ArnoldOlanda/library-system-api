@@ -111,6 +111,21 @@ export class ProductosService {
     return producto;
   }
 
+  async findByBarcode(barcode: string) {
+    const producto = await this.productoRepository.findOne({
+      where: { codigoBarras: barcode },
+      relations: ['categoria'],
+    });
+
+    if (!producto) {
+      throw new NotFoundException(
+        `Producto con código de barras ${barcode} no encontrado`,
+      );
+    }
+
+    return producto;
+  }
+
   async update(id: string, updateProductoDto: UpdateProductoDto) {
     try {
       const { categoriaId, ...rest } = updateProductoDto;

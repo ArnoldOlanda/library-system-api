@@ -13,6 +13,6 @@ import { AuthModule } from '../auth/auth.module';
   ],
   controllers: [ProductosController],
   providers: [ProductosService],
-  exports: [TypeOrmModule],
+  exports: [TypeOrmModule, ProductosService],
 })
 export class ProductosModule {}

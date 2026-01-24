@@ -24,7 +24,11 @@ async function bootstrap() {
   app.useGlobalInterceptors(new FormatResponseInterceptor());
   app.useGlobalFilters(new HttpExceptionFilter())
   app.use(cookieParser());
-  app.enableCors(CORS);
+  app.enableCors({
+    ...CORS,
+    // Permitir WebSockets
+    transports: ['websocket', 'polling'],
+  });
   app.setGlobalPrefix('api/v1');
 
   const config = new DocumentBuilder()

@@ -24,6 +24,7 @@ import { MovimientosAlmacenModule } from './movimientos-almacen/movimientos-alma
 import { DashboardModule } from './dashboard/dashboard.module';
 import { ReportesModule } from './reportes/reportes.module';
 import { PrinterModule } from './printer/printer.module';
+import { ScannerModule } from './scanner/scanner.module';
 
 @Module({
   imports: [
@@ -79,7 +80,8 @@ import { PrinterModule } from './printer/printer.module';
     MovimientosAlmacenModule,
     DashboardModule,
     ReportesModule,
-    PrinterModule
+    PrinterModule,
+    ScannerModule,
   ],
   controllers: [],
   providers: [

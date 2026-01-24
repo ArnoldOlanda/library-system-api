@@ -25,6 +25,18 @@ export class CreateProductoDto {
   codigo: string;
 
   @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  @ApiProperty({
+    description: 'Código de barras del producto',
+    type: 'string',
+    example: '7501234567890',
+    maxLength: 100,
+    required: false,
+  })
+  codigoBarras?: string;
+
+  @IsString()
   @IsNotEmpty()
   @MaxLength(200)
   @ApiProperty({
