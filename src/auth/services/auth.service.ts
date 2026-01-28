@@ -70,8 +70,8 @@ export class AuthService {
       // Set refresh token cookie http-only
       res.cookie('refresh_token', refreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'prod',
-        sameSite: 'none',
+        secure: this.configService.get<string>('NODE_ENV') === 'production',
+        sameSite: this.configService.get<string>('NODE_ENV') === 'production' ? 'none' : 'lax',
         maxAge: 1000 * 60 * 60 * 24 * 7,
       });
 

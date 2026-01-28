@@ -7,7 +7,7 @@ import {
   Post,
   Query,
   Req,
-  Request,
+  // Request,
   Res,
   UseGuards,
 } from '@nestjs/common';
@@ -22,6 +22,9 @@ import { Throttle } from '@nestjs/throttler';
 import { RegisterDto } from '../dto/register.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
+import { GetUser } from '../decorators/user.decorator';
+import { User } from 'src/users/entities/user.entity';
+import { type Request } from 'express';
 
 @Controller('auth')
 export class AuthController {
@@ -120,8 +123,8 @@ export class AuthController {
   @Post('refresh-token')
   @ApiResponse({ status: 200, description: 'Token actualizado exitosamente.' })
   @ApiResponse({ status: 401, description: 'Token de refresco inválido.' })
-  async refreshToken(@Body('refresh_token') refreshToken: string) {
-    return this.authService.refreshToken(refreshToken);
+  async refreshToken(@Req() req: Request) {
+    return this.authService.refreshToken(req.cookies.refresh_token);
   }
 
   @Post('forgot-password')
@@ -183,10 +186,10 @@ export class AuthController {
   @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
   async changePassword(
     @Body() changePasswordDto: ChangePasswordDto,
-    @Request() req: any,
+    @GetUser() user: User,
   ) {
     return this.authService.changePassword(
-      req.user.id,
+      user.id,
       changePasswordDto.currentPassword,
       changePasswordDto.newPassword,
     );
