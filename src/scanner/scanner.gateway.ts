@@ -85,6 +85,7 @@ export class ScannerGateway implements OnGatewayConnection, OnGatewayDisconnect 
       if (!producto) {
         // Obtener info del cliente conectado
         const clientInfo = this.connectedClients.get(client.id);
+        this.logger.log(`Client info: ${JSON.stringify(clientInfo)}`);
         if (clientInfo?.type === 'warehouse') {
           // Si es warehouse, emitir evento para registrar nuevo producto
           client.emit('newProductScanned', {
