@@ -19,7 +19,7 @@ interface ScanBarcodePayload {
 interface ConnectedClient {
   id: string;
   sessionId?: string;
-  type: 'scanner' | 'pos';
+  type: 'scanner' | 'pos' | 'warehouse';
 }
 
 @WebSocketGateway({
@@ -83,16 +83,31 @@ export class ScannerGateway implements OnGatewayConnection, OnGatewayDisconnect 
       );
 
       if (!producto) {
-        // Emitir evento de error al cliente que escaneó
-        client.emit('scanError', {
-          message: 'Producto no encontrado',
-          barcode: payload.barcode,
-        });
-
-        return {
-          success: false,
-          message: 'Producto no encontrado',
-        };
+        // Obtener info del cliente conectado
+        const clientInfo = this.connectedClients.get(client.id);
+        if (clientInfo?.type === 'warehouse') {
+          // Si es warehouse, emitir evento para registrar nuevo producto
+          client.emit('newProductScanned', {
+            barcode: payload.barcode,
+            scannedBy: client.id,
+            timestamp: new Date().toISOString(),
+          });
+          return {
+            success: true,
+            message: 'Nuevo producto escaneado',
+            barcode: payload.barcode,
+          };
+        } else {
+          // Emitir evento de error al cliente que escaneó
+          client.emit('scanError', {
+            message: 'Producto no encontrado',
+            barcode: payload.barcode,
+          });
+          return {
+            success: false,
+            message: 'Producto no encontrado',
+          };
+        }
       }
 
       // Emitir el producto encontrado a todos los clientes POS con la misma sesión
