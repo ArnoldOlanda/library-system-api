@@ -50,7 +50,7 @@ export class ScannerGateway implements OnGatewayConnection, OnGatewayDisconnect 
   @SubscribeMessage('register')
   handleRegister(
     @ConnectedSocket() client: Socket,
-    @MessageBody() payload: { type: 'scanner' | 'pos'; sessionId?: string },
+    @MessageBody() payload: { type: 'scanner' | 'pos' | 'warehouse'; sessionId?: string },
   ) {
     this.connectedClients.set(client.id, {
       id: client.id,
