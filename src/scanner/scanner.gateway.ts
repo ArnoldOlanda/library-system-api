@@ -87,7 +87,8 @@ export class ScannerGateway implements OnGatewayConnection, OnGatewayDisconnect 
       const clientInfo = this.connectedClients.get(client.id);
       const targetClients = Array.from(this.connectedClients.values()).filter(
         (c) => {
-          if (c.type !== 'pos') return false;
+          // No enviar al escáner
+          if (c.type === 'scanner') return false;
           
           // Si el escáner tiene sessionId, solo enviar a POS con el mismo sessionId
           if (clientInfo?.sessionId) {
