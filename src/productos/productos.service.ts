@@ -118,9 +118,7 @@ export class ProductosService {
     });
 
     if (!producto) {
-      throw new NotFoundException(
-        `Producto con código de barras ${barcode} no encontrado`,
-      );
+      this.logger.warn(`Producto with barcode ${barcode} not found`);
     }
 
     return producto;
