@@ -82,17 +82,34 @@ export class ScannerGateway implements OnGatewayConnection, OnGatewayDisconnect 
         payload.barcode,
       );
 
+      // Emitir el producto encontrado a todos los clientes POS con la misma sesión
+      // o a todos los POS si no hay sesión especificada
+      const clientInfo = this.connectedClients.get(client.id);
+      const targetClients = Array.from(this.connectedClients.values()).filter(
+        (c) => {
+          if (c.type !== 'pos') return false;
+          
+          // Si el escáner tiene sessionId, solo enviar a POS con el mismo sessionId
+          if (clientInfo?.sessionId) {
+            return c.sessionId === clientInfo.sessionId;
+          }
+          
+          // Si no hay sessionId, enviar a todos los POS
+          return true;
+        },
+      );
+
       if (!producto) {
-        // Obtener info del cliente conectado
-        const clientInfo = this.connectedClients.get(client.id);
-        this.logger.log(`Client info: ${JSON.stringify(clientInfo)}`);
-        if (clientInfo?.type === 'warehouse') {
-          // Si es warehouse, emitir evento para registrar nuevo producto
-          client.emit('newProductScanned', {
-            barcode: payload.barcode,
-            scannedBy: client.id,
-            timestamp: new Date().toISOString(),
+        // Verificar si hay algún cliente warehouse conectado con la misma sesión
+        if (targetClients.some(c => c.sessionId === clientInfo?.sessionId && c.type === 'warehouse')) {
+          targetClients.forEach((targetClient) => {
+            this.server.to(targetClient.id).emit('newProductScanned', {
+              barcode: payload.barcode,
+              scannedBy: client.id,
+              timestamp: new Date().toISOString(),
+            });
           });
+
           return {
             success: true,
             message: 'Nuevo producto escaneado',
@@ -110,23 +127,6 @@ export class ScannerGateway implements OnGatewayConnection, OnGatewayDisconnect 
           };
         }
       }
-
-      // Emitir el producto encontrado a todos los clientes POS con la misma sesión
-      // o a todos los POS si no hay sesión especificada
-      const clientInfo = this.connectedClients.get(client.id);
-      const targetClients = Array.from(this.connectedClients.values()).filter(
-        (c) => {
-          if (c.type !== 'pos') return false;
-          
-          // Si el escáner tiene sessionId, solo enviar a POS con el mismo sessionId
-          if (clientInfo?.sessionId) {
-            return c.sessionId === clientInfo.sessionId;
-          }
-          
-          // Si no hay sessionId, enviar a todos los POS
-          return true;
-        },
-      );
 
       targetClients.forEach((targetClient) => {
         this.server.to(targetClient.id).emit('productScanned', {
