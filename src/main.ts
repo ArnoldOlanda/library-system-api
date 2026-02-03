@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import morgan from 'morgan';
+import fs from 'fs';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { CORS } from './config/cors';
@@ -9,7 +10,17 @@ import { HttpExceptionFilter } from './exceptionFilters/httpException.filter';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+
+  // Certificados SSL solo en desarrollo local
+  const isDevelopment = process.env.NODE_ENV !== 'production';
+  const httpsOptions = isDevelopment ? {
+    key: fs.readFileSync('./localhost+3-key.pem'),
+    cert: fs.readFileSync('./localhost+3.pem'),
+  } : undefined;
+
+  const app = await NestFactory.create(AppModule, {
+    ...(httpsOptions && { httpsOptions }),
+  });
 
   app.use(morgan('dev'));
   app.useGlobalPipes(
@@ -45,7 +56,7 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT ?? 3000);
   Logger.log(
-    `Application is running on: http://localhost:${process.env.PORT ?? 3000}`,
+    `Application is running on: https://192.168.1.100:${process.env.PORT ?? 3000}`,
   );
 }
 bootstrap();

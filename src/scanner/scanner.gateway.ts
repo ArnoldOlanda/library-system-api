@@ -19,15 +19,20 @@ interface ScanBarcodePayload {
 interface ConnectedClient {
   id: string;
   sessionId?: string;
-  type: 'scanner' | 'pos' | 'warehouse';
+  type: 'scanner' | 'pos';
 }
 
 @WebSocketGateway({
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: process.env.NODE_ENV === 'production'
+      ? process.env.FRONTEND_URL || false
+      : true, // Permitir todos los orígenes en desarrollo (móviles, IPs locales)
     credentials: true,
   },
   namespace: '/scanner',
+  transports: ['polling', 'websocket'], // Polling primero para móviles
+  pingTimeout: 60000,
+  pingInterval: 25000,
 })
 export class ScannerGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
@@ -50,7 +55,7 @@ export class ScannerGateway implements OnGatewayConnection, OnGatewayDisconnect 
   @SubscribeMessage('register')
   handleRegister(
     @ConnectedSocket() client: Socket,
-    @MessageBody() payload: { type: 'scanner' | 'pos' | 'warehouse'; sessionId?: string },
+    @MessageBody() payload: { type: 'scanner' | 'pos'; sessionId?: string },
   ) {
     this.connectedClients.set(client.id, {
       id: client.id,
@@ -74,7 +79,7 @@ export class ScannerGateway implements OnGatewayConnection, OnGatewayDisconnect 
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: ScanBarcodePayload,
   ) {
-    this.logger.log(`Barcode scanned: ${payload.barcode} from client ${client.id}`);
+    this.logger.log(`Barcode scanned: ${payload.barcode} with session ${payload.sessionId}`);
 
     try {
       // Buscar producto por código de barras
@@ -82,53 +87,37 @@ export class ScannerGateway implements OnGatewayConnection, OnGatewayDisconnect 
         payload.barcode,
       );
 
-      // Emitir el producto encontrado a todos los clientes POS con la misma sesión
-      // o a todos los POS si no hay sesión especificada
-      const clientInfo = this.connectedClients.get(client.id);
+      // Usar sessionId del payload (siempre se envía)
+      const sessionId = payload.sessionId;
+      
+      // Filtrar solo clientes POS con la misma sesión
       const targetClients = Array.from(this.connectedClients.values()).filter(
-        (c) => {
-          // No enviar al escáner
-          if (c.type === 'scanner') return false;
-          
-          // Si el escáner tiene sessionId, solo enviar a POS con el mismo sessionId
-          if (clientInfo?.sessionId) {
-            return c.sessionId === clientInfo.sessionId;
-          }
-          
-          // Si no hay sessionId, enviar a todos los POS
-          return true;
-        },
+        (c) => c.type === 'pos' && c.sessionId === sessionId,
       );
 
       if (!producto) {
-        // Verificar si hay algún cliente warehouse conectado con la misma sesión
-        if (targetClients.some(c => c.sessionId === clientInfo?.sessionId && c.type === 'warehouse')) {
-          targetClients.forEach((targetClient) => {
-            this.server.to(targetClient.id).emit('newProductScanned', {
-              barcode: payload.barcode,
-              scannedBy: client.id,
-              timestamp: new Date().toISOString(),
-            });
+        // Producto no encontrado - emitir evento newProductScanned a todos los POS con la misma sesión
+        targetClients.forEach((targetClient) => {
+          this.server.to(targetClient.id).emit('newProductScanned', {
+            barcode: payload.barcode,
+            scannedBy: client.id,
+            timestamp: new Date().toISOString(),
           });
+        });
 
-          return {
-            success: true,
-            message: 'Nuevo producto escaneado',
-            barcode: payload.barcode,
-          };
-        } else {
-          // Emitir evento de error al cliente que escaneó
-          client.emit('scanError', {
-            message: 'Producto no encontrado',
-            barcode: payload.barcode,
-          });
-          return {
-            success: false,
-            message: 'Producto no encontrado',
-          };
-        }
+        this.logger.log(
+          `New product barcode ${payload.barcode} sent to ${targetClients.length} POS client(s)`,
+        );
+
+        return {
+          success: true,
+          message: 'Nuevo producto escaneado',
+          barcode: payload.barcode,
+          sentToClients: targetClients.length,
+        };
       }
 
+      // Producto encontrado - emitir evento productScanned a todos los POS con la misma sesión
       targetClients.forEach((targetClient) => {
         this.server.to(targetClient.id).emit('productScanned', {
           producto,
