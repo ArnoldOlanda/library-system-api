@@ -8,19 +8,28 @@ import { CORS } from './config/cors';
 import { FormatResponseInterceptor } from './interceptors/formatResponse.interceptor';
 import { HttpExceptionFilter } from './exceptionFilters/httpException.filter';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { HttpsOptions } from '@nestjs/common/interfaces/external/https-options.interface';
 
 async function bootstrap() {
 
-  // Certificados SSL solo en desarrollo local
-  const isDevelopment = process.env.NODE_ENV !== 'production';
-  const httpsOptions = isDevelopment ? {
-    key: fs.readFileSync('./localhost+3-key.pem'),
-    cert: fs.readFileSync('./localhost+3.pem'),
-  } : undefined;
+  let httpsOptions: HttpsOptions | undefined;
+  
+  // Solo intentar cargar certificados en desarrollo
+  if (process.env.NODE_ENV !== 'production') {
+    try {
+      httpsOptions = {
+        key: fs.readFileSync('./localhost+3-key.pem'),
+        cert: fs.readFileSync('./localhost+3.pem'),
+      };
+      Logger.log('🔒 HTTPS habilitado para desarrollo');
+    } catch (error) {
+      Logger.warn('⚠️  Certificados SSL no encontrados, usando HTTP');
+    }
+  }
 
-  const app = await NestFactory.create(AppModule, {
-    ...(httpsOptions && { httpsOptions }),
-  });
+  const app = await NestFactory.create(AppModule, 
+    httpsOptions ? { httpsOptions } : {}
+  );
 
   app.use(morgan('dev'));
   app.useGlobalPipes(
