@@ -23,8 +23,6 @@ export class Role {
 	@Column({ nullable: true })
 	description?: string;
 
-    @Column({ nullable: true })
-    otherField: string;
 
     @ManyToMany(() => Permission)
     @JoinTable()

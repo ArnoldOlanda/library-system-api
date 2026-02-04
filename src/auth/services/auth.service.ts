@@ -42,9 +42,11 @@ export class AuthService {
 
   async login(res: Response, data: LoginDto) {
     try {
-      const user = await this.userRepository.findOneBy({
-        email: data.email,
+      const user = await this.userRepository.findOne({
+        where: { email: data.email },
+        relations: ['roles', 'roles.permissions'],
       });
+
       if (!user) {
         throw new NotFoundException('User not found');
       }
@@ -57,6 +59,21 @@ export class AuthService {
       if (!checkPassword) {
         throw new UnauthorizedException('Invalid credentials');
       }
+
+      // Extraer todos los permisos únicos de todos los roles
+      const permissions = [
+        ...new Set(
+          user.roles
+            .flatMap((role) => role.permissions)
+            .map((permission) => permission.name),
+        ),
+      ];
+
+      // Eliminar permissions de cada rol para no duplicar información
+      user.roles = user.roles.map((role) => {
+        const { permissions: _, ...roleWithoutPermissions } = role;
+        return roleWithoutPermissions as any;
+      });
 
       const payload: JwtPayload = {
         id: user.id,
@@ -71,15 +88,19 @@ export class AuthService {
       res.cookie('refresh_token', refreshToken, {
         httpOnly: true,
         secure: this.configService.get<string>('NODE_ENV') === 'production',
-        sameSite: this.configService.get<string>('NODE_ENV') === 'production' ? 'none' : 'lax',
+        sameSite:
+          this.configService.get<string>('NODE_ENV') === 'production'
+            ? 'none'
+            : 'lax',
         maxAge: 1000 * 60 * 60 * 24 * 7,
       });
 
       return res.status(HttpStatus.OK).json({
-        status: "success",
+        status: 'success',
         timestamp: new Date().toISOString(),
         data: {
           user,
+          permissions,
           token,
         },
       });
@@ -118,7 +139,10 @@ export class AuthService {
 
       const activationUrl = this.generateActivationUrl(token);
 
-      await this.emailVerificationService.queueEmailVerification(user, activationUrl);
+      await this.emailVerificationService.queueEmailVerification(
+        user,
+        activationUrl,
+      );
 
       return {
         message:
@@ -127,7 +151,7 @@ export class AuthService {
       };
     } catch (error) {
       this.logger.error('Error al registrar usuario', error);
-      if(error instanceof HttpException){
+      if (error instanceof HttpException) {
         throw error;
       }
       throw new InternalServerErrorException('Error al registrar usuario');
@@ -136,7 +160,9 @@ export class AuthService {
 
   async socialProviderSignIn(user: SocialProviderUser, res: Response) {
     try {
-      const userExist = await this.userRepository.findOneBy({email:user.email});
+      const userExist = await this.userRepository.findOneBy({
+        email: user.email,
+      });
       if (!userExist) {
         const newUser = this.userRepository.create({
           name: user.firstName + ' ' + user.lastName,
@@ -144,7 +170,7 @@ export class AuthService {
           avatar: user.picture,
           password: '',
           isSocialLogin: true,
-          socialProvider: user.social_provider
+          socialProvider: user.social_provider,
         });
 
         if (!(newUser instanceof User)) {
@@ -165,10 +191,10 @@ export class AuthService {
       userExist.socialProvider = user.social_provider;
       await this.userRepository.update(userExist.id, userExist);
 
-      const payload: JwtPayload = { 
-        id: userExist.id, 
-        name: userExist.name, 
-        email: userExist.email 
+      const payload: JwtPayload = {
+        id: userExist.id,
+        name: userExist.name,
+        email: userExist.email,
       };
       const token = await this.jwtService.signAsync(payload);
       const refreshToken = await this.generateRefreshToken(payload);
@@ -176,7 +202,10 @@ export class AuthService {
       res.cookie('refresh_token', refreshToken, {
         httpOnly: true,
         secure: this.configService.get<string>('NODE_ENV') === 'production',
-        sameSite: this.configService.get<string>('NODE_ENV') === 'production' ? 'none' : 'lax',
+        sameSite:
+          this.configService.get<string>('NODE_ENV') === 'production'
+            ? 'none'
+            : 'lax',
         maxAge: 1000 * 60 * 60 * 24 * 7, // 7 días
       });
 
@@ -196,7 +225,9 @@ export class AuthService {
         await this.emailVerificationService.findAndValidateToken(token);
 
       if (!emailVerification) {
-        throw new BadRequestException('Token de activación expirado o inválido');
+        throw new BadRequestException(
+          'Token de activación expirado o inválido',
+        );
       }
 
       emailVerification.user.isActive = true;
@@ -207,7 +238,7 @@ export class AuthService {
 
       return emailVerification.user;
     } catch (error) {
-      if(error instanceof HttpException){
+      if (error instanceof HttpException) {
         throw error;
       }
       this.logger.error('Error al activar la cuenta', error);
@@ -218,36 +249,42 @@ export class AuthService {
   async resendEmailVerification(email: string) {
     try {
       const user = await this.userRepository.findOneBy({ email });
-      
-      if(!user){
+
+      if (!user) {
         throw new NotFoundException(`User with email ${email} not found`);
       }
 
-      if(user.isActive){
+      if (user.isActive) {
         throw new BadRequestException('User account is already active');
       }
 
       // Invalidar tokens anteriores
-      await this.emailVerificationService.invalidatePreviousVerificationTokens(user.id);
+      await this.emailVerificationService.invalidatePreviousVerificationTokens(
+        user.id,
+      );
 
       const token = crypto.randomUUID();
-      
+
       await this.emailVerificationService.create({ user, token });
 
       const activationUrl = this.generateActivationUrl(token);
 
-      await this.emailVerificationService.queueEmailVerification(user, activationUrl);
+      await this.emailVerificationService.queueEmailVerification(
+        user,
+        activationUrl,
+      );
 
       return {
         message: 'Correo de verificación reenviado exitosamente',
-      }
-
-    }  catch (error) {
-      if(error instanceof HttpException){
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
         throw error;
       }
       this.logger.error('Error al reenviar el correo de verificación', error);
-      throw new InternalServerErrorException('Error al reenviar el correo de verificación');
+      throw new InternalServerErrorException(
+        'Error al reenviar el correo de verificación',
+      );
     }
   }
 
@@ -298,7 +335,8 @@ export class AuthService {
       await this.passwordResetTokenService.forgotPassword(user);
 
       return {
-        message: 'Se ha enviado un correo con las instrucciones para restablecer tu contraseña',
+        message:
+          'Se ha enviado un correo con las instrucciones para restablecer tu contraseña',
       };
     } catch (error) {
       this.logger.error('Error al enviar el correo de recuperación', error);
@@ -324,8 +362,7 @@ export class AuthService {
   }
 
   async resetPassword(token: string, password: string) {
-    try {      
-
+    try {
       // Actualizar la contraseña del usuario
       const user = await this.passwordResetTokenService.resetPassword(token);
 
