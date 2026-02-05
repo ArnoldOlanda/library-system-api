@@ -12,24 +12,22 @@ import { HttpsOptions } from '@nestjs/common/interfaces/external/https-options.i
 
 async function bootstrap() {
 
-  let httpsOptions: HttpsOptions | undefined;
+  // let httpsOptions: HttpsOptions | undefined;
   
-  // Solo intentar cargar certificados en desarrollo
-  if (process.env.NODE_ENV !== 'production') {
-    try {
-      httpsOptions = {
-        key: fs.readFileSync('./localhost+3-key.pem'),
-        cert: fs.readFileSync('./localhost+3.pem'),
-      };
-      Logger.log('🔒 HTTPS habilitado para desarrollo');
-    } catch (error) {
-      Logger.warn('⚠️  Certificados SSL no encontrados, usando HTTP');
-    }
-  }
+  // // Solo intentar cargar certificados en desarrollo
+  // if (process.env.NODE_ENV !== 'production') {
+  //   try {
+  //     httpsOptions = {
+  //       key: fs.readFileSync('./localhost+3-key.pem'),
+  //       cert: fs.readFileSync('./localhost+3.pem'),
+  //     };
+  //     Logger.log('🔒 HTTPS habilitado para desarrollo');
+  //   } catch (error) {
+  //     Logger.warn('⚠️  Certificados SSL no encontrados, usando HTTP');
+  //   }
+  // }
 
-  const app = await NestFactory.create(AppModule, 
-    httpsOptions ? { httpsOptions } : {}
-  );
+  const app = await NestFactory.create(AppModule);
 
   app.use(morgan('dev'));
   app.useGlobalPipes(
@@ -65,7 +63,7 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT ?? 3000);
   Logger.log(
-    `Application is running on: https://192.168.1.100:${process.env.PORT ?? 3000}`,
+    `Application is running on: http://localhost:${process.env.PORT ?? 3000}`,
   );
 }
 bootstrap();

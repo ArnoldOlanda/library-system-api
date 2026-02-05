@@ -29,7 +29,9 @@ export class RoleService {
     }
 
     async findAll(): Promise<Role[]> {
-        return this.roleRepository.find();
+        return this.roleRepository.find({
+            relations: ['permissions'],
+        });
     }
 
     async findOne(id: string): Promise<Role> {
@@ -59,16 +61,11 @@ export class RoleService {
             throw new NotFoundException(`Role with ID ${roleId} not found`);
         }
 
-        const permissionsToAdd = permissionIds.filter(
-            (pid) => !role.permissions.some((perm) => perm.id === pid),
-        );
-
-        if (permissionsToAdd.length === 0) {
-            return role;
-        }
-
-        const permissions = permissionsToAdd.map((id) => ({ id } as any));
-        role.permissions = [...role.permissions, ...permissions];
+        // Reemplazar completamente los permisos con los nuevos
+        // Esto elimina los permisos que no están en la lista y agrega los nuevos
+        const permissions = permissionIds.map((id) => ({ id } as any));
+        role.permissions = permissions;
+        
         return this.roleRepository.save(role);
     }
 
