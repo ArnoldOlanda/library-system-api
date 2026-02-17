@@ -7,9 +7,13 @@ import {
   Delete,
   Query,
   ParseUUIDPipe,
+  Res,
+  HttpStatus,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiResponse, ApiTags } from '@nestjs/swagger';
+import type { Response } from 'express';
 import { VentasService } from './ventas.service';
+import { TicketService } from './ticket.service';
 import { CreateVentaDto } from './dto/create-venta.dto';
 import { FindVentasDto } from './dto/find-ventas.dto';
 import { Auth } from '../auth/decorators/auth.decorator';
@@ -21,7 +25,10 @@ import { User } from '../users/entities/user.entity';
 @ApiTags('ventas')
 @Controller('ventas')
 export class VentasController {
-  constructor(private readonly ventasService: VentasService) {}
+  constructor(
+    private readonly ventasService: VentasService,
+    private readonly ticketService: TicketService,
+  ) {}
 
   @Post()
   @Auth({ permissions: [Permission.CREATE_VENTA] })
@@ -51,6 +58,28 @@ export class VentasController {
   @ApiResponse({ status: 404, description: 'Venta no encontrada.' })
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.ventasService.findOne(id);
+  }
+
+  @Get(':id/ticket')
+  @Auth({ permissions: [Permission.READ_VENTA] })
+  @ApiResponse({ status: 200, description: 'Ticket generado correctamente.' })
+  @ApiResponse({ status: 404, description: 'Venta no encontrada.' })
+  async getTicket(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Res() res: Response,
+  ) {
+    const venta = await this.ventasService.findOne(id);
+    const pdfDoc = await this.ticketService.generateTicket(venta);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `inline; filename="ticket-${venta.id}.pdf"`,
+    );
+
+    pdfDoc.info.Title = `Ticket de Venta ${venta.id}`;
+    pdfDoc.pipe(res);
+    pdfDoc.end();
   }
 
   @Delete(':id')

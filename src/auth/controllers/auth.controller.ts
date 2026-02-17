@@ -38,7 +38,7 @@ export class AuthController {
       this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
   }
 
-  @Throttle({ default: { limit: 3, ttl: 60000 } }) // Limit to 3 requests per minute for login
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // Limit to 10 requests per minute for login
   @Post('login')
   @ApiResponse({ status: 200, description: 'Login exitoso.' })
   @ApiResponse({ status: 401, description: 'Credenciales inválidas.' })
