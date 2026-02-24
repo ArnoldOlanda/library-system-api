@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, Res } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { type Response } from 'express';
 import { ReportesService } from './reportes.service';
@@ -65,6 +65,46 @@ export class ReportesController {
     const pdfDoc = await this.reportesService.getReporteInventarioPDF(categoriaId, stockBajo);
 
     pdfDoc.info.Title = 'Reporte de Inventario';
+    pdfDoc.pipe(response);
+    pdfDoc.end();
+  }
+
+  @Get('ventas/pdf')
+  // @Auth()
+  @ApiOperation({ summary: 'Obtener reporte de ventas en PDF' })
+  @ApiQuery({ name: 'startDate', required: false, type: String })
+  @ApiQuery({ name: 'endDate', required: false, type: String })
+  @ApiQuery({ name: 'clienteId', required: false, type: String })
+  async getReporteVentasPDF(
+    @Res() response: Response,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('clienteId') clienteId?: string,
+  ) {
+    response.setHeader('Content-Type', 'application/pdf');
+    const pdfDoc = await this.reportesService.getReporteVentasPDF(startDate, endDate, clienteId);
+
+    pdfDoc.info.Title = 'Reporte de Ventas';
+    pdfDoc.pipe(response);
+    pdfDoc.end();
+  }
+
+  @Get('compras/pdf')
+  // @Auth()
+  @ApiOperation({ summary: 'Obtener reporte de compras en PDF' })
+  @ApiQuery({ name: 'startDate', required: false, type: String })
+  @ApiQuery({ name: 'endDate', required: false, type: String })
+  @ApiQuery({ name: 'proveedorId', required: false, type: String })
+  async getReporteComprasPDF(
+    @Res() response: Response,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('proveedorId') proveedorId?: string,
+  ) {
+    response.setHeader('Content-Type', 'application/pdf');
+    const pdfDoc = await this.reportesService.getReporteComprasPDF(startDate, endDate, proveedorId);
+
+    pdfDoc.info.Title = 'Reporte de Compras';
     pdfDoc.pipe(response);
     pdfDoc.end();
   }

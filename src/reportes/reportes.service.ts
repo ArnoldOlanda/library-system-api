@@ -1,11 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, LessThanOrEqual, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Producto } from '../productos/entities/producto.entity';
 import { Venta } from '../ventas/entities/venta.entity';
 import { Compra } from '../compras/entities/compra.entity';
 import { PrinterService } from 'src/printer/printer.service';
 import { inventarioPDF } from './documents/inventarioPDF.report';
+import { ventasPDF } from './documents/ventasPDF.report';
+import { comprasPDF } from './documents/comprasPDF.report';
 
 @Injectable()
 export class ReportesService {
@@ -145,6 +147,22 @@ export class ReportesService {
     const data = await this.getReporteInventario(categoriaId, stockBajo);
 
     const pdfDefinitions = inventarioPDF({data});
+
+    return this.printerService.createPdf(pdfDefinitions);
+  }
+
+  async getReporteVentasPDF(startDate?:string, endDate?:string, clienteId?: string){
+    const data = await this.getReporteVentas(startDate, endDate, clienteId);
+
+    const pdfDefinitions = ventasPDF({data});
+
+    return this.printerService.createPdf(pdfDefinitions);
+  }
+
+  async getReporteComprasPDF(startDate?:string, endDate?:string, proveedorId?: string){
+    const data = await this.getReporteCompras(startDate, endDate, proveedorId);
+
+    const pdfDefinitions = comprasPDF({data});
 
     return this.printerService.createPdf(pdfDefinitions);
   }

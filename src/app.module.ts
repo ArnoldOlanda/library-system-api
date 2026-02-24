@@ -25,6 +25,8 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { ReportesModule } from './reportes/reportes.module';
 import { PrinterModule } from './printer/printer.module';
 import { ScannerModule } from './scanner/scanner.module';
+import { SecuencesModule } from './secuences/secuences.module';
+import { SecuencesServiceService } from './secuences-service/secuences-service.service';
 
 @Module({
   imports: [
@@ -82,13 +84,15 @@ import { ScannerModule } from './scanner/scanner.module';
     ReportesModule,
     PrinterModule,
     ScannerModule,
+    SecuencesModule,
   ],
   controllers: [],
   providers: [
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard
-    }
+    },
+    SecuencesServiceService
   ],
 })
 export class AppModule {}
